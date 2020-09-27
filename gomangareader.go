@@ -2,22 +2,6 @@ package main
 
 import (
 	"fmt"
-	"fyne.io/fyne"
-	"fyne.io/fyne/app"
-	"fyne.io/fyne/canvas"
-	"fyne.io/fyne/layout"
-	"fyne.io/fyne/theme"
-	"fyne.io/fyne/widget"
-	"github.com/PuerkitoBio/goquery"
-	"image/color"
-	"io"
-	"io/ioutil"
-	"log"
-	"net/http"
-	"os"
-	"path/filepath"
-	"strconv"
-	"strings"
 
 	"github.com/francoiscolombo/gomangareader/settings"
 	"github.com/francoiscolombo/gomangareader/widget"

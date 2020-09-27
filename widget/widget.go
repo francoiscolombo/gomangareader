@@ -20,7 +20,6 @@ import (
 	"strings"
 
 	"github.com/francoiscolombo/gomangareader/settings"
-	"github.com/francoiscolombo/gomangareader/util"
 	"github.com/francoiscolombo/gomangareader/archive"
 )
 
@@ -147,7 +146,7 @@ func chaptersPanel(app fyne.App, manga settings.Manga, available bool) *fyne.Con
 					downloadChapter(manga,c)
 					c = c + 1
 				}
-				UpdateMetaData(*globalConfig)
+				settings.UpdateMetaData(*globalConfig)
 				w.Close()
 			}()
 			w.Show()
@@ -225,7 +224,7 @@ func widgetReader(app fyne.App, manga settings.Manga, chapter int) *fyne.Contain
 	metadataPath := filepath.Dir(manga.CoverPath)
 	tmpDir := filepath.FromSlash(fmt.Sprintf("%s/%s/viewer",metadataPath,manga.Title))
 	cbzPath := filepath.FromSlash(fmt.Sprintf("%s/%s-%03d.cbz",manga.Path,manga.Title,chapter))
-	pages, err := Unzip(cbzPath, tmpDir)
+	pages, err := archive.Unzip(cbzPath, tmpDir)
 	if err != nil {
 		fmt.Printf("Error when trying to unzip %s to temporary view folder %s: %s", cbzPath, tmpDir, err)
 	}
@@ -392,7 +391,7 @@ func createCBZ(outputPath, pagesPath, title string, chapter int) {
 	if err != nil {
 		panic(err)
 	}
-	if err := ZipFiles(outputCBZ, files); err != nil {
+	if err := archive.ZipFiles(outputCBZ, files); err != nil {
 		panic(err)
 	}
 	for _, file := range files {
