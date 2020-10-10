@@ -34,17 +34,17 @@ type History struct {
 
 // Manga keep the download history for every mangas that we are subscribing
 type Manga struct {
-	Title         string `json:"title"`
-	LastChapter   int    `json:"last_chapter"`
-	CoverPath     string `json:"cover_path"`
-	Path          string `json:"path"`
-	CoverUrl      string `json:"cover_url"`
-	Name          string `json:"name"`
-	AlternateName string `json:"alternate_name"`
-	YearOfRelease string `json:"year_of_release"`
-	Status        string `json:"status"`
-	Author        string `json:"author"`
-	Artist        string `json:"artist"`
+	Title            string `json:"title"`
+	LastChapter      int    `json:"last_chapter"`
+	CoverPath        string `json:"cover_path"`
+	Path             string `json:"path"`
+	CoverUrl         string `json:"cover_url"`
+	Name             string `json:"name"`
+	AlternateName    string `json:"alternate_name"`
+	YearOfRelease    string `json:"year_of_release"`
+	Status           string `json:"status"`
+	Author           string `json:"author"`
+	Artist           string `json:"artist"`
 	ReadingDirection string `json:"reading_direction"`
 	Description      string `json:"description"`
 }
@@ -176,6 +176,118 @@ func SearchLastChapter(settings Settings, manga string) (lastChapter int) {
 }
 
 /*
+UpdateDetails search details for a specific manga, and fill
+the properties. only property needs to search is the title
+*/
+func UpdateDetails(config Settings, manga Manga) (newManga Manga) {
+	fmt.Printf("- Refresh metadatas for manga %s now... ", manga.Title)
+	// okay at this point we are sure to have the directory
+	// access detail data from mangareader.net only
+	// this is working only with this website
+	// cover image: present in div.d38
+	// description: d46.p
+	// details: table.d41
+	// - first line: name
+	// - second line: alternate name
+	// - third line: year of release
+	// - forth line: status
+	// - fifth line: author
+	// - sixth line: artist
+	// - seventh line: reading direction
+	// - eighth line: genre (a href with class a.d42)
+	req, _ := http.NewRequest("GET", fmt.Sprintf("https://www.mangareader.net/%s", manga.Title), nil)
+	req.Header.Add("cache-control", "no-cache")
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		// handle error
+		log.Fatal(err)
+	}
+	defer res.Body.Close()
+	if res.StatusCode != 200 {
+		log.Printf("status code error while trying to get details for title %s: %d %s", manga.Title, res.StatusCode, res.Status)
+		return
+	}
+	body, _ := ioutil.ReadAll(res.Body)
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(string(body)))
+	if err != nil {
+		log.Fatal(err)
+	}
+	// extract cover url
+	var coverUrl string
+	doc.Find(".d38").Each(func(i int, div *goquery.Selection) {
+		div.Find("img").Each(func(i int, img *goquery.Selection) {
+			v, _ := img.Attr("src")
+			if strings.HasPrefix(v, "http") {
+				coverUrl = v
+			} else {
+				coverUrl = fmt.Sprintf("https:%s", v)
+			}
+			return
+		})
+	})
+	// extract description
+	var description string
+	doc.Find(".d46").Each(func(i int, div *goquery.Selection) {
+		div.Find("p").Each(func(i int, p *goquery.Selection) {
+			description = p.Text()
+			return
+		})
+	})
+	// parse table.d41
+	var name string
+	var alternateName string
+	var yearOfRelease string
+	var status string
+	var author string
+	var artist string
+	var readingDirection string
+	doc.Find(".d41").Each(func(i int, table *goquery.Selection) {
+		table.Find("tr").Each(func(ir int, row *goquery.Selection) {
+			row.Find("td").Each(func(ic int, cell *goquery.Selection) {
+				if ic == 1 {
+					if ir == 0 {
+						name = cell.Text()
+					} else if ir == 1 {
+						alternateName = cell.Text()
+					} else if ir == 2 {
+						yearOfRelease = cell.Text()
+					} else if ir == 3 {
+						status = cell.Text()
+					} else if ir == 4 {
+						author = cell.Text()
+					} else if ir == 5 {
+						artist = cell.Text()
+					} else if ir == 6 {
+						readingDirection = cell.Text()
+					}
+				}
+				return
+			})
+			return
+		})
+	})
+	metadataPath := filepath.FromSlash(fmt.Sprintf("%s/.metadata", config.Config.LibraryPath))
+	coverPath := filepath.FromSlash(fmt.Sprintf("%s/%s-cover.jpg", metadataPath, manga.Title))
+	// create structure with details to keep
+	newManga = Manga{
+		Title:            manga.Title,
+		LastChapter:      manga.LastChapter,
+		CoverPath:        coverPath,
+		CoverUrl:         coverUrl,
+		Path:             filepath.FromSlash(fmt.Sprintf("%s/%s", config.Config.LibraryPath, manga.Title)),
+		Name:             name,
+		AlternateName:    alternateName,
+		YearOfRelease:    yearOfRelease,
+		Status:           status,
+		Author:           author,
+		Artist:           artist,
+		ReadingDirection: readingDirection,
+		Description:      description,
+	}
+	return
+}
+
+/*
 UpdateMetaData will retrieve all metadata directly from mangareader.net (no other provider accepted here)
 it will fill all the settings metadata but also download the cover of the serie, and generate a thumbnail
 for every cbz existing (it will be the first page of the cbz)
@@ -187,120 +299,19 @@ func UpdateMetaData(config Settings) {
 	// create metadata directory if it does not exists yet
 	metadataPath := filepath.FromSlash(fmt.Sprintf("%s/.metadata", config.Config.LibraryPath))
 	if _, err := os.Stat(metadataPath); os.IsNotExist(err) {
-		err := os.MkdirAll(metadataPath,os.ModePerm)
+		err := os.MkdirAll(metadataPath, os.ModePerm)
 		if err != nil {
-			log.Fatalf("Error while trying to create directory %s: %s",metadataPath,err)
+			log.Fatalf("Error while trying to create directory %s: %s", metadataPath, err)
 		}
 	}
 	var mangaUpdatedList []Manga
 	for _, manga := range config.History.Titles {
-		fmt.Printf("- Refresh metadatas for manga %s now... ",manga.Title)
-		// okay at this point we are sure to have the directory
-		// access detail data from mangareader.net only
-		// this is working only with this website
-		// cover image: present in div.d38
-		// description: d46.p
-		// details: table.d41
-		// - first line: name
-		// - second line: alternate name
-		// - third line: year of release
-		// - forth line: status
-		// - fifth line: author
-		// - sixth line: artist
-		// - seventh line: reading direction
-		// - eighth line: genre (a href with class a.d42)
-		req, _ := http.NewRequest("GET", fmt.Sprintf("https://www.mangareader.net/%s",manga.Title), nil)
-		req.Header.Add("cache-control", "no-cache")
-		res, err := http.DefaultClient.Do(req)
-		if err != nil {
-			// handle error
-			log.Fatal(err)
-		}
-		defer res.Body.Close()
-		if res.StatusCode != 200 {
-			log.Fatalf("status code error while trying to get details for title %s: %d %s", manga.Title, res.StatusCode, res.Status)
-		}
-		body, _ := ioutil.ReadAll(res.Body)
-		doc, err := goquery.NewDocumentFromReader(strings.NewReader(string(body)))
-		if err != nil {
-			log.Fatal(err)
-		}
-		// extract cover url
-		var coverUrl string
-		doc.Find(".d38").Each(func(i int, div *goquery.Selection) {
-			div.Find("img").Each(func(i int, img *goquery.Selection) {
-				v, _ := img.Attr("src")
-				if strings.HasPrefix(v,"http") {
-					coverUrl = v
-				} else {
-					coverUrl = fmt.Sprintf("https:%s",v)
-				}
-				return
-			})
-		})
-		// extract description
-		var description string
-		doc.Find(".d46").Each(func(i int, div *goquery.Selection) {
-			div.Find("p").Each(func(i int, p *goquery.Selection) {
-				description = p.Text()
-				return
-			})
-		})
-		// parse table.d41
-		var name string
-		var alternateName string
-		var yearOfRelease string
-		var status string
-		var author string
-		var artist string
-		var readingDirection string
-		doc.Find(".d41").Each(func(i int, table *goquery.Selection) {
-			table.Find("tr").Each(func(ir int, row *goquery.Selection) {
-				row.Find("td").Each(func(ic int, cell *goquery.Selection) {
-					if ic == 1 {
-						if ir == 0 {
-							name = cell.Text()
-						} else if ir == 1 {
-							alternateName = cell.Text()
-						} else if ir == 2 {
-							yearOfRelease = cell.Text()
-						} else if ir == 3 {
-							status = cell.Text()
-						} else if ir == 4 {
-							author = cell.Text()
-						} else if ir == 5 {
-							artist = cell.Text()
-						} else if ir == 6 {
-							readingDirection = cell.Text()
-						}
-					}
-					return
-				})
-				return
-			})
-		})
-		coverPath := filepath.FromSlash(fmt.Sprintf("%s/%s-cover.jpg",metadataPath,manga.Title))
-		// create structure with details to keep
-		newManga := Manga{
-			Title:         manga.Title,
-			LastChapter:   manga.LastChapter,
-			CoverPath:     coverPath,
-			CoverUrl:      coverUrl,
-			Path:          filepath.FromSlash(fmt.Sprintf("%s/%s", config.Config.LibraryPath,manga.Title)),
-			Name:          name,
-			AlternateName: alternateName,
-			YearOfRelease: yearOfRelease,
-			Status:        status,
-			Author:        author,
-			Artist:        artist,
-			ReadingDirection: readingDirection,
-			Description: description,
-		}
+		newManga := UpdateDetails(config, manga)
 		mangaUpdatedList = append(mangaUpdatedList, newManga)
 		// download cover picture (if needed)
 		downloadCover(newManga)
 		// and generate thumbnails (if needed)
-		extractFirstPages(config.Config.LibraryPath,newManga)
+		extractFirstPages(config.Config.LibraryPath, newManga)
 		fmt.Println(" completed.")
 	}
 	// okay we have updated the metadata, now we can save the config
@@ -323,7 +334,7 @@ DownloadCover simply download a cover for a manga title
 func downloadCover(manga Manga) {
 	// download only if does not exists
 	if _, err := os.Stat(manga.CoverPath); os.IsNotExist(err) {
-		fmt.Printf("- %s does not exists yet, we have to download it....",manga.CoverPath)
+		fmt.Printf("- %s does not exists yet, we have to download it....", manga.CoverPath)
 		req, _ := http.NewRequest("GET", manga.CoverUrl, nil)
 		req.Header.Add("cache-control", "no-cache")
 		res, err := http.DefaultClient.Do(req)
@@ -356,31 +367,31 @@ ExtractFirstPage allows to extract the first page of a cbz archive to generate a
 */
 func extractFirstPages(globalPath string, manga Manga) {
 	for i := 1; i < manga.LastChapter; i++ {
-		cbzArchive := filepath.FromSlash(fmt.Sprintf("%s/%s/%s-%03d.cbz",globalPath,manga.Title,manga.Title,i))
-		cbzThumbnail := filepath.FromSlash(fmt.Sprintf("%s/.metadata/%s-%03d.jpg",globalPath,manga.Title,i))
+		cbzArchive := filepath.FromSlash(fmt.Sprintf("%s/%s/%s-%03d.cbz", globalPath, manga.Title, manga.Title, i))
+		cbzThumbnail := filepath.FromSlash(fmt.Sprintf("%s/.metadata/%s-%03d.jpg", globalPath, manga.Title, i))
 		if _, err := os.Stat(cbzThumbnail); os.IsNotExist(err) {
 			r, err := zip.OpenReader(cbzArchive)
 			if err != nil {
-				fmt.Printf("[Skipped] Error while opening archive %s: %s",cbzArchive,err)
+				fmt.Printf("[Skipped] Error while opening archive %s: %s", cbzArchive, err)
 			} else {
 				f := r.File[0]
 				outFile, err := os.OpenFile(cbzThumbnail, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
 				if err != nil {
-					log.Fatalf("Error while opening thumbnail %s: %s",cbzThumbnail,err)
+					log.Fatalf("Error while opening thumbnail %s: %s", cbzThumbnail, err)
 				}
 				rc, err := f.Open()
 				if err != nil {
-					log.Fatalf("Error while opening first page of %s: %s",cbzThumbnail,err)
+					log.Fatalf("Error while opening first page of %s: %s", cbzThumbnail, err)
 				}
 				_, err = io.Copy(outFile, rc)
 				_ = outFile.Close()
 				_ = rc.Close()
 				if err != nil {
-					log.Fatalf("Error while saving %s: %s",cbzThumbnail,err)
+					log.Fatalf("Error while saving %s: %s", cbzThumbnail, err)
 				}
 				err = r.Close()
 				if err != nil {
-					log.Fatalf("Error while closing archive %s: %s",cbzArchive,err)
+					log.Fatalf("Error while closing archive %s: %s", cbzArchive, err)
 				}
 			}
 		}

@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 
-	"github.com/francoiscolombo/gomangareader/settings"
 	"github.com/francoiscolombo/gomangareader/widget"
 )
 
@@ -19,17 +18,6 @@ func main() {
 
 	fmt.Printf("version %s (%s)\n", versionNumber, versionName)
 
-	if settings.IsSettingsExisting() == false {
-		settings.WriteDefaultSettings()
-	}
-
-	cfg := settings.ReadSettings()
-
-	fmt.Println("- Settings loaded.")
-	fmt.Printf("  > Library path is %s\n  > Default provider is %s\n\n", cfg.Config.LibraryPath, cfg.Config.Provider)
-
-	settings.UpdateMetaData(cfg)
-
-	widget.ShowLibrary(&cfg)
+	widget.ShowLibrary()
 
 }
