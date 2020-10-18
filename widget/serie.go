@@ -16,8 +16,10 @@ import (
 
 func checkNewChapters(manga settings.Manga) bool {
 	var provider settings.MangaProvider
-	if globalConfig.Config.Provider == "mangareader.net" {
+	if manga.Provider == "mangareader.net" {
 		provider = settings.MangaReader{}
+	} else if manga.Provider == "mangapanda.com" {
+		provider = settings.MangaPanda{}
 	}
 	return provider.CheckLastChapter(manga) >= manga.LastChapter
 }
@@ -93,6 +95,7 @@ func widgetDetailSerie(app fyne.App, win fyne.Window, manga settings.Manga) *fyn
 	availability := fyne.NewContainerWithLayout(layout.NewGridWrapLayout(fyne.NewSize(thWidth*2, 30)), nca)
 	detailPanel := fyne.NewContainerWithLayout(layout.NewHBoxLayout(),
 		fyne.NewContainerWithLayout(layout.NewGridWrapLayout(fyne.NewSize(thWidth, 30)),
+			widget.NewLabel("Provider:"),
 			widget.NewLabel("Name:"),
 			widget.NewLabel("Alternate Name:"),
 			widget.NewLabel("Year of release:"),
@@ -103,6 +106,7 @@ func widgetDetailSerie(app fyne.App, win fyne.Window, manga settings.Manga) *fyn
 			widget.NewLabel("Artist:"),
 			availability),
 		fyne.NewContainerWithLayout(layout.NewGridWrapLayout(fyne.NewSize(thWidth, 30)),
+			widget.NewLabel(manga.Provider),
 			widget.NewLabel(manga.Name),
 			widget.NewLabel(manga.AlternateName),
 			widget.NewLabel(manga.YearOfRelease),

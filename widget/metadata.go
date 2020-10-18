@@ -35,8 +35,10 @@ func UpdateMetaData(win fyne.Window, config settings.Settings) {
 	var mangaUpdatedList []settings.Manga
 	for _, manga := range config.History.Titles {
 		var provider settings.MangaProvider
-		if config.Config.Provider == "mangareader.net" {
+		if manga.Provider == "mangareader.net" {
 			provider = settings.MangaReader{}
+		} else if manga.Provider == "mangapanda.com" {
+			provider = settings.MangaPanda{}
 		}
 		newManga := provider.FindDetails(config.Config.LibraryPath, manga.Title, manga.LastChapter)
 		mangaUpdatedList = append(mangaUpdatedList, newManga)
@@ -50,7 +52,6 @@ func UpdateMetaData(win fyne.Window, config settings.Settings) {
 	newSettings := settings.Settings{
 		settings.Config{
 			LibraryPath: config.Config.LibraryPath,
-			Provider:    config.Config.Provider,
 		},
 		settings.History{
 			Titles: mangaUpdatedList,

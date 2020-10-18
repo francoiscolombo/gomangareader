@@ -11,6 +11,7 @@ import (
 	"fyne.io/fyne/widget"
 	"github.com/francoiscolombo/gomangareader/settings"
 	"image/color"
+	"log"
 )
 
 const (
@@ -59,8 +60,8 @@ func updateLibrary(app fyne.App, win fyne.Window) {
 	}
 	cfg := settings.ReadSettings()
 	globalConfig = &cfg
-	//fmt.Println("- Settings loaded.")
-	//fmt.Printf("  > Library path is %s\n  > Default provider is %s\n\n", globalConfig.Config.LibraryPath, globalConfig.Config.Provider)
+	log.Println("- Settings loaded.")
+	log.Printf("  > Library path is %s\n", globalConfig.Config.LibraryPath)
 	UpdateMetaData(win, *globalConfig)
 	cfg = settings.ReadSettings()
 	globalConfig = &cfg
@@ -83,7 +84,11 @@ func widgetUpdateCollections(app fyne.App, win fyne.Window) *fyne.Container {
 	return fyne.NewContainerWithLayout(layout.NewGridLayout(2),
 		widget.NewButtonWithIcon("Search series to add to the collection", theme.SearchIcon(), func() {
 			newSerie := widget.NewEntry()
+			selectProvider := widget.NewRadio([]string { "mangareader.net", "mangapanda.com"}, func(provider string) {
+				log.Println("provider selected:",provider)
+			})
 			content := widget.NewForm(
+				widget.NewFormItem("Which provider to use:", selectProvider),
 				widget.NewFormItem("Search series to add:", newSerie),
 			)
 			dialog.ShowCustomConfirm("What do you want to find?", "Search", "Cancel", content, func(b bool) {
@@ -92,8 +97,10 @@ func widgetUpdateCollections(app fyne.App, win fyne.Window) *fyne.Container {
 				}
 				// and here we have to add it.
 				var provider settings.MangaProvider
-				if globalConfig.Config.Provider == "mangareader.net" {
+				if selectProvider.Selected == "mangareader.net" {
 					provider = settings.MangaReader{}
+				} else if selectProvider.Selected == "mangapanda.com" {
+					provider = settings.MangaPanda{}
 				}
 				searchResults := provider.SearchManga(globalConfig.Config.LibraryPath, newSerie.Text)
 				showSearchResults(app, win, newSerie.Text, searchResults)

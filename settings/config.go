@@ -9,7 +9,6 @@ type Settings struct {
 // Config only store the default configuration, like output path and the global site provider
 type Config struct {
 	LibraryPath string `json:"library_path"`
-	Provider    string `json:"provider"`
 }
 
 // History is the manga download history, so it's an array of all the mangas downloaded
@@ -19,6 +18,7 @@ type History struct {
 
 // Manga keep the download history for every mangas that we are subscribing
 type Manga struct {
+	Provider         string `json:"provider"`
 	Title            string `json:"title"`
 	LastChapter      int    `json:"last_chapter"`
 	CoverPath        string `json:"cover_path"`

@@ -23,7 +23,6 @@ func contains(array []string, value string) bool {
 type MangaReader struct{}
 
 func (provider MangaReader) FindDetails(libraryPath, title string, lastChapter int) (manga Manga) {
-	fmt.Printf("- Refresh metadatas for manga %s now... ", title)
 	// access detail data from mangareader.net only
 	// this is working only with this website
 	// cover image: present in div.d38
@@ -112,6 +111,7 @@ func (provider MangaReader) FindDetails(libraryPath, title string, lastChapter i
 	coverPath := filepath.FromSlash(fmt.Sprintf("%s/%s-cover.jpg", metadataPath, title))
 	// create structure with details to keep
 	manga = Manga{
+		Provider:         "mangareader.net",
 		Title:            title,
 		LastChapter:      lastChapter,
 		CoverPath:        coverPath,

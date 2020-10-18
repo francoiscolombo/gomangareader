@@ -39,7 +39,6 @@ func WriteDefaultSettings() {
 	settings := Settings{
 		Config{
 			LibraryPath: fmt.Sprintf("%s/mangas", user.HomeDir),
-			Provider:    "mangareader.net",
 		},
 		History{
 			Titles: []Manga{},
@@ -88,7 +87,7 @@ func WriteSettings(settings Settings) {
 /*
 UpdateHistory register the last chapter downloaded for a manga, and the last provider used
 */
-func UpdateHistory(cfg Settings, manga string, chapter int) (newSettings Settings) {
+func UpdateHistory(cfg Settings, provider, manga string, chapter int) (newSettings Settings) {
 	if chapter < 0 {
 		chapter = 1
 	}
@@ -96,19 +95,20 @@ func UpdateHistory(cfg Settings, manga string, chapter int) (newSettings Setting
 	for _, title := range cfg.History.Titles {
 		if title.Title != manga {
 			titles = append(titles, Manga{
+				Provider:    provider,
 				Title:       title.Title,
 				LastChapter: title.LastChapter,
 			})
 		}
 	}
 	titles = append(titles, Manga{
+		Provider:    provider,
 		Title:       manga,
 		LastChapter: chapter,
 	})
 	newSettings = Settings{
 		Config{
 			LibraryPath: cfg.Config.LibraryPath,
-			Provider:    cfg.Config.Provider,
 		},
 		History{
 			Titles: titles,

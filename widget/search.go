@@ -46,7 +46,7 @@ func widgetSearchResults(app fyne.App, win fyne.Window, w fyne.Window, result []
 					if !b {
 						return
 					}
-					settings.UpdateHistory(*globalConfig, manga.Title, 1)
+					settings.UpdateHistory(*globalConfig, manga.Provider, manga.Title, 1)
 					win.SetTitle("GoMangaReader - Update in progress...")
 					win.SetContent(fyne.NewContainerWithLayout(layout.NewGridWrapLayout(fyne.NewSize(400, 20)),
 						widget.NewLabelWithStyle("Please wait, refreshing your library...", fyne.TextAlignCenter, fyne.TextStyle{Bold: true, Italic: true}),
