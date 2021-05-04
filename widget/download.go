@@ -20,20 +20,20 @@ import (
 type downloadWorkerJob struct {
 	path string
 	page int
-	url string
+	url  string
 }
 
 type downloadWorkerResult struct {
-	error error
-	url string
+	error      error
+	url        string
 	statusCode int
 }
 
-func downloadWorker(jobs <- chan downloadWorkerJob, results chan <- downloadWorkerResult) {
+func downloadWorker(jobs <-chan downloadWorkerJob, results chan<- downloadWorkerResult) {
 	for workerJob := range jobs {
-		log.Printf("Start download page %d from url %s in temp directory %s\n",workerJob.page,workerJob.url,workerJob.path)
-		status, err := downloadImage(workerJob.path,workerJob.page,workerJob.url)
-		log.Printf("Page %d downloaded with status code %d\n",workerJob.page,status)
+		//log.Printf("Start download page %d from url %s in temp directory %s\n",workerJob.page,workerJob.url,workerJob.path)
+		status, err := downloadImage(workerJob.path, workerJob.page, workerJob.url)
+		//log.Printf("Page %d downloaded with status code %d\n",workerJob.page,status)
 		res := downloadWorkerResult{error: err, url: workerJob.url, statusCode: status}
 		results <- res
 	}
@@ -82,7 +82,7 @@ func showDownloadChapters(app fyne.App, win fyne.Window, manga settings.Manga) {
 			pageNumber := 0
 			nbPages := len(imageLinks)
 			for {
-				nbJobs := runtime.NumCPU()-1
+				nbJobs := runtime.NumCPU() - 1
 				if (pageNumber + nbJobs) > nbPages {
 					nbJobs = nbPages - pageNumber
 				}
@@ -124,18 +124,18 @@ func showDownloadChapters(app fyne.App, win fyne.Window, manga settings.Manga) {
 					break
 				}
 			}
-/*
-			for pageNumber, imgLink := range imageLinks {
-				log.Printf("Download page %d from url %s in temp directory %s\n",pageNumber,imgLink,tempDirectory)
-				prog.SetValue(float64(pageNumber) / float64(len(imageLinks)))
-				err := downloadImage(tempDirectory, pageNumber, imgLink)
-				if err != nil {
-					msg := errors.New(fmt.Sprintf("Issue when downloading page %d from url:\n%s\nthe error is: %s\nclick OK to continue...", pageNumber, imgLink, err))
-					dialog.ShowError(msg, win)
-					break
+			/*
+				for pageNumber, imgLink := range imageLinks {
+					log.Printf("Download page %d from url %s in temp directory %s\n",pageNumber,imgLink,tempDirectory)
+					prog.SetValue(float64(pageNumber) / float64(len(imageLinks)))
+					err := downloadImage(tempDirectory, pageNumber, imgLink)
+					if err != nil {
+						msg := errors.New(fmt.Sprintf("Issue when downloading page %d from url:\n%s\nthe error is: %s\nclick OK to continue...", pageNumber, imgLink, err))
+						dialog.ShowError(msg, win)
+						break
+					}
 				}
-			}
-*/
+			*/
 			// and now create the new cbz from that temporary directory
 			err = createCBZ(manga.Path, tempDirectory, manga.Title, manga.LastChapter)
 			if err != nil {

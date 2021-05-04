@@ -84,8 +84,8 @@ func widgetUpdateCollections(app fyne.App, win fyne.Window) *fyne.Container {
 	return fyne.NewContainerWithLayout(layout.NewGridLayout(2),
 		widget.NewButtonWithIcon("Search series to add to the collection", theme.SearchIcon(), func() {
 			newSerie := widget.NewEntry()
-			selectProvider := widget.NewRadio([]string { "mangareader.net", "mangapanda.com"}, func(provider string) {
-				log.Println("provider selected:",provider)
+			selectProvider := widget.NewRadio([]string{"mangareader.net", "mangapanda.com"}, func(provider string) {
+				log.Println("provider selected:", provider)
 			})
 			content := widget.NewForm(
 				widget.NewFormItem("Which provider to use:", selectProvider),
