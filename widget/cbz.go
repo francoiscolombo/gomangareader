@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 )
@@ -38,22 +39,38 @@ func createCBZ(outputPath, pagesPath, title string, chapter int) error {
 	if err != nil {
 		return err
 	}
-	defer newZipFile.Close()
+	defer func(newZipFile *os.File) {
+		err := newZipFile.Close()
+		if err != nil {
+			log.Printf("Something went wrong while trying to close the zip file, error is %s", err)
+		}
+	}(newZipFile)
 
 	zipWriter := zip.NewWriter(newZipFile)
-	defer zipWriter.Close()
+	defer func(zipWriter *zip.Writer) {
+		err := zipWriter.Close()
+		if err != nil {
+			log.Printf("Something went wrong while trying to close the zip file, error is %s", err)
+		}
+	}(zipWriter)
 
 	// Add files to zip
 	for _, file := range files {
 		if err = addFileToZip(zipWriter, file); err != nil {
 			return err
 		} else {
-			os.Remove(file)
+			err := os.Remove(file)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
 	// remove temporary folder
-	os.Remove(pagesPath)
+	err = os.Remove(pagesPath)
+	if err != nil {
+		return err
+	}
 	//fmt.Println("done")
 
 	return nil
@@ -65,7 +82,12 @@ func addFileToZip(zipWriter *zip.Writer, filename string) error {
 	if err != nil {
 		return err
 	}
-	defer fileToZip.Close()
+	defer func(fileToZip *os.File) {
+		err := fileToZip.Close()
+		if err != nil {
+			log.Printf("Something went wrong while trying to add file to the zip file, error is %s", err)
+		}
+	}(fileToZip)
 
 	// Get the file information
 	info, err := fileToZip.Stat()

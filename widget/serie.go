@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"fyne.io/fyne"
 	"fyne.io/fyne/canvas"
+	"fyne.io/fyne/container"
 	"fyne.io/fyne/layout"
 	"fyne.io/fyne/theme"
 	"fyne.io/fyne/widget"
@@ -16,12 +17,14 @@ import (
 
 func checkNewChapters(manga settings.Manga) bool {
 	var provider settings.MangaProvider
-	if manga.Provider == "mangareader.net" {
+	if manga.Provider == "mangareader.cc" {
 		provider = settings.MangaReader{}
-	} else if manga.Provider == "mangapanda.com" {
+		return provider.CheckLastChapter(manga) >= manga.LastChapter
+	} else if manga.Provider == "mangapanda.in" {
 		provider = settings.MangaPanda{}
+		return provider.CheckLastChapter(manga) >= manga.LastChapter
 	}
-	return provider.CheckLastChapter(manga) >= manga.LastChapter
+	return false
 }
 
 func chaptersPanel(app fyne.App, win fyne.Window, manga settings.Manga, available bool) *fyne.Container {
@@ -88,9 +91,9 @@ func chaptersPanel(app fyne.App, win fyne.Window, manga settings.Manga, availabl
 func widgetDetailSerie(app fyne.App, win fyne.Window, manga settings.Manga) *fyne.Container {
 	coverImage := fyne.NewContainerWithLayout(layout.NewGridWrapLayout(fyne.NewSize(thWidth*2, thHeight*2)), canvas.NewImageFromFile(manga.CoverPath))
 	updated := checkNewChapters(manga)
-	nca := canvas.NewText("complete", color.NRGBA{0x80, 0x80, 0xff, 0xff})
+	nca := canvas.NewText("complete", color.NRGBA{R: 0x80, G: 0x80, B: 0xff, A: 0xff})
 	if updated {
-		nca = canvas.NewText("new chapters available", color.NRGBA{0xff, 0x80, 0x80, 0xff})
+		nca = canvas.NewText("new chapters available", color.NRGBA{R: 0xff, G: 0x80, B: 0x80, A: 0xff})
 	}
 	availability := fyne.NewContainerWithLayout(layout.NewGridWrapLayout(fyne.NewSize(thWidth*2, 30)), nca)
 	detailPanel := fyne.NewContainerWithLayout(layout.NewHBoxLayout(),
@@ -101,7 +104,6 @@ func widgetDetailSerie(app fyne.App, win fyne.Window, manga settings.Manga) *fyn
 			widget.NewLabel("Year of release:"),
 			widget.NewLabel("Status:"),
 			widget.NewLabel("Nb of Chapters:"),
-			widget.NewLabel("Reading direction:"),
 			widget.NewLabel("Author:"),
 			widget.NewLabel("Artist:"),
 			availability),
@@ -112,13 +114,12 @@ func widgetDetailSerie(app fyne.App, win fyne.Window, manga settings.Manga) *fyn
 			widget.NewLabel(manga.YearOfRelease),
 			widget.NewLabel(manga.Status),
 			widget.NewLabel(fmt.Sprintf("%d", manga.LastChapter-1)),
-			widget.NewLabel(manga.ReadingDirection),
 			widget.NewLabel(manga.Author),
 			widget.NewLabel(manga.Artist),
 			widget.NewLabel("")))
 	desc := widget.NewLabel(manga.Description)
 	desc.Wrapping = fyne.TextWrapWord
-	description := fyne.NewContainerWithLayout(layout.NewGridWrapLayout(fyne.NewSize(thWidth*5, thHeight)), widget.NewScrollContainer(desc))
+	description := fyne.NewContainerWithLayout(layout.NewGridWrapLayout(fyne.NewSize(thWidth*5, thHeight)), container.NewScroll(desc))
 	browseChapters := fyne.NewContainerWithLayout(layout.NewGridWrapLayout(fyne.NewSize(thWidth*5, chHeight)), chaptersPanel(app, win, manga, updated))
 	return fyne.NewContainerWithLayout(layout.NewHBoxLayout(),
 		fyne.NewContainerWithLayout(layout.NewVBoxLayout(), fyne.NewContainerWithLayout(layout.NewHBoxLayout(), coverImage, detailPanel), browseChapters, description))

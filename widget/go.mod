@@ -1,16 +1,17 @@
-module github.com/francoiscolombo/gomangareader
+module github.com/francoiscolombo/gomangareader/widget
 
 go 1.18
 
-require github.com/francoiscolombo/gomangareader/widget v0.0.0-00010101000000-000000000000
+require (
+	fyne.io/fyne v1.4.3
+	github.com/francoiscolombo/gomangareader/archive v0.0.0-00010101000000-000000000000
+	github.com/francoiscolombo/gomangareader/settings v0.0.0-00010101000000-000000000000
+)
 
 require (
-	fyne.io/fyne v1.4.3 // indirect
 	github.com/PuerkitoBio/goquery v1.8.0 // indirect
 	github.com/andybalholm/cascadia v1.3.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/francoiscolombo/gomangareader/archive v0.0.0-00010101000000-000000000000 // indirect
-	github.com/francoiscolombo/gomangareader/settings v0.0.0-00010101000000-000000000000 // indirect
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/fyne-io/mobile v0.1.2 // indirect
 	github.com/go-gl/gl v0.0.0-20190320180904-bf2b1f2f34d7 // indirect
@@ -28,8 +29,6 @@ require (
 	gopkg.in/yaml.v2 v2.2.8 // indirect
 )
 
-replace github.com/francoiscolombo/gomangareader/archive => ./archive
+replace github.com/francoiscolombo/gomangareader/archive => ../archive
 
-replace github.com/francoiscolombo/gomangareader/settings => ./settings
-
-replace github.com/francoiscolombo/gomangareader/widget => ./widget
+replace github.com/francoiscolombo/gomangareader/settings => ../settings

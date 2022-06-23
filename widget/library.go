@@ -5,6 +5,7 @@ import (
 	"fyne.io/fyne"
 	"fyne.io/fyne/app"
 	"fyne.io/fyne/canvas"
+	"fyne.io/fyne/container"
 	"fyne.io/fyne/dialog"
 	"fyne.io/fyne/layout"
 	"fyne.io/fyne/theme"
@@ -15,7 +16,7 @@ import (
 )
 
 const (
-	versionNumber = "1.0"
+	versionNumber = "2.0"
 	versionName   = "Another Dimension"
 
 	thWidth   = 144
@@ -30,12 +31,13 @@ const (
 var globalConfig *settings.Settings
 
 /*
-Library allow to display the mangas in a GUI.
+ShowLibrary allow to display the mangas in a GUI.
 */
 func ShowLibrary() {
 
+	r, _ := fyne.LoadResourceFromPath("./icon.png")
 	libraryViewer := app.NewWithID("gomangareader")
-	libraryViewer.SetIcon(theme.FyneLogo())
+	libraryViewer.SetIcon(r)
 
 	windows := libraryViewer.NewWindow("GoMangaReader - Update in progress...")
 	windows.SetContent(fyne.NewContainerWithLayout(layout.NewGridWrapLayout(fyne.NewSize(400, 20)),
@@ -67,16 +69,16 @@ func updateLibrary(app fyne.App, win fyne.Window) {
 	globalConfig = &cfg
 	content := fyne.NewContainerWithLayout(layout.NewGridLayout(5))
 	for _, manga := range globalConfig.History.Titles {
-		ws := widgetSerie(app, win, manga)
+		ws := widgetSerie(app, manga)
 		if ws != nil {
 			ws.Resize(fyne.NewSize(thWidth, thHeight))
-			content.AddObject(ws)
+			content.Add(ws)
 		}
 	}
 	win.SetContent(fyne.NewContainerWithLayout(layout.NewVBoxLayout(),
 		widgetUpdateCollections(app, win),
 		fyne.NewContainerWithLayout(layout.NewGridWrapLayout(fyne.NewSize(thWidth*5+40, (thHeight+btnHeight*2)*2)),
-			widget.NewScrollContainer(content))))
+			container.NewScroll(content))))
 	win.SetTitle(fmt.Sprintf("GoMangaReader v%s (%s)", versionNumber, versionName))
 }
 
@@ -84,7 +86,7 @@ func widgetUpdateCollections(app fyne.App, win fyne.Window) *fyne.Container {
 	return fyne.NewContainerWithLayout(layout.NewGridLayout(2),
 		widget.NewButtonWithIcon("Search series to add to the collection", theme.SearchIcon(), func() {
 			newSerie := widget.NewEntry()
-			selectProvider := widget.NewRadio([]string{"mangareader.net", "mangapanda.com"}, func(provider string) {
+			selectProvider := widget.NewRadioGroup([]string{"mangapanda.in", "mangareader.cc"}, func(provider string) {
 				log.Println("provider selected:", provider)
 			})
 			content := widget.NewForm(
@@ -97,10 +99,10 @@ func widgetUpdateCollections(app fyne.App, win fyne.Window) *fyne.Container {
 				}
 				// and here we have to add it.
 				var provider settings.MangaProvider
-				if selectProvider.Selected == "mangareader.net" {
-					provider = settings.MangaReader{}
-				} else if selectProvider.Selected == "mangapanda.com" {
+				if selectProvider.Selected == "mangapanda.in" {
 					provider = settings.MangaPanda{}
+				} else if selectProvider.Selected == "mangareader.cc" {
+					provider = settings.MangaReader{}
 				}
 				searchResults := provider.SearchManga(globalConfig.Config.LibraryPath, newSerie.Text)
 				showSearchResults(app, win, newSerie.Text, searchResults)
@@ -125,14 +127,14 @@ func widgetUpdateCollections(app fyne.App, win fyne.Window) *fyne.Container {
 	)
 }
 
-func widgetSerie(app fyne.App, win fyne.Window, manga settings.Manga) *fyne.Container {
+func widgetSerie(app fyne.App, manga settings.Manga) *fyne.Container {
 	title := manga.Name
 	if len(title) > 13 {
 		title = title[0:13] + "..."
 	}
-	colorTitle := color.NRGBA{0x80, 0xff, 0, 0xff}
+	colorTitle := color.NRGBA{R: 0x80, G: 0xff, A: 0xff}
 	if checkNewChapters(manga) {
-		colorTitle = color.NRGBA{0xff, 0x80, 0, 0xff}
+		colorTitle = color.NRGBA{R: 0xff, G: 0x80, A: 0xff}
 	}
 	return fyne.NewContainerWithLayout(layout.NewVBoxLayout(),
 		fyne.NewContainerWithLayout(layout.NewGridWrapLayout(fyne.NewSize(thWidth, thHeight)), canvas.NewImageFromFile(manga.CoverPath)),

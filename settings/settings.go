@@ -10,11 +10,11 @@ import (
 )
 
 func getSettingsPath() string {
-	user, err := user.Current()
+	usr, err := user.Current()
 	if err != nil {
-		log.Fatalf("Error when trying to get current user: %s\n", err)
+		log.Fatalf("Error when trying to get current usr: %s\n", err)
 	}
-	return user.HomeDir + "/.gomangareader.json"
+	return usr.HomeDir + "/.gomangareader.json"
 }
 
 /*
@@ -31,14 +31,14 @@ func IsSettingsExisting() bool {
 WriteDefaultSettings write the default settings
 */
 func WriteDefaultSettings() {
-	user, err := user.Current()
+	usr, err := user.Current()
 	if err != nil {
-		log.Fatalf("Error when trying to get current user: %s\n", err)
+		log.Fatalf("Error when trying to get current usr: %s\n", err)
 	}
-	log.Printf("Hello %s ! You don't have any settings yet. I can see that your homedir is %s, I will use it if you don't mind.\n", user.Name, user.HomeDir)
+	log.Printf("Hello %s ! You don't have any settings yet. I can see that your homedir is %s, I will use it if you don't mind.\n", usr.Name, usr.HomeDir)
 	settings := Settings{
 		Config{
-			LibraryPath: fmt.Sprintf("%s/mangas", user.HomeDir),
+			LibraryPath: fmt.Sprintf("%s/mangas", usr.HomeDir),
 		},
 		History{
 			Titles: []Manga{},
@@ -64,14 +64,22 @@ func ReadSettings() (settings Settings) {
 
 	log.Println("Successfully Opened settings.json")
 	// defer the closing of our jsonFile so that we can parse it later on
-	defer jsonFile.Close()
+	defer func(jsonFile *os.File) {
+		err := jsonFile.Close()
+		if err != nil {
+			log.Printf("Something went wrong while trying to close the json file, error is %s", err)
+		}
+	}(jsonFile)
 
 	// read our opened jsonFile as a byte array.
 	byteValue, _ := ioutil.ReadAll(jsonFile)
 
 	// we unmarshal our byteArray which contains our
 	// jsonFile's content into 'settings' which we defined above
-	json.Unmarshal(byteValue, &settings)
+	err = json.Unmarshal(byteValue, &settings)
+	if err != nil {
+		return Settings{}
+	}
 
 	return
 }

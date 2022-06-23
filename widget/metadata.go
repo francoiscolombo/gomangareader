@@ -8,6 +8,7 @@ import (
 	"fyne.io/fyne/dialog"
 	"github.com/francoiscolombo/gomangareader/settings"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -35,25 +36,27 @@ func UpdateMetaData(win fyne.Window, config settings.Settings) {
 	var mangaUpdatedList []settings.Manga
 	for _, manga := range config.History.Titles {
 		var provider settings.MangaProvider
-		if manga.Provider == "mangareader.net" {
-			provider = settings.MangaReader{}
-		} else if manga.Provider == "mangapanda.com" {
+		if manga.Provider == "mangapanda.in" {
 			provider = settings.MangaPanda{}
+		} else if manga.Provider == "mangareader.cc" {
+			provider = settings.MangaReader{}
 		}
-		newManga := provider.FindDetails(config.Config.LibraryPath, manga.Title, manga.LastChapter)
-		mangaUpdatedList = append(mangaUpdatedList, newManga)
-		// download cover picture (if needed)
-		downloadCover(win, newManga)
-		// and generate thumbnails (if needed)
-		extractFirstPages(win, config.Config.LibraryPath, newManga)
-		//fmt.Println(" completed.")
+		if provider != nil {
+			newManga := provider.FindDetails(config.Config.LibraryPath, manga.Title, manga.LastChapter)
+			mangaUpdatedList = append(mangaUpdatedList, newManga)
+			// download cover picture (if needed)
+			downloadCover(win, newManga)
+			// and generate thumbnails (if needed)
+			extractFirstPages(win, config.Config.LibraryPath, newManga)
+			//fmt.Println(" completed.")
+		}
 	}
 	// okay we have updated the metadata, now we can save the config
 	newSettings := settings.Settings{
-		settings.Config{
+		Config: settings.Config{
 			LibraryPath: config.Config.LibraryPath,
 		},
-		settings.History{
+		History: settings.History{
 			Titles: mangaUpdatedList,
 		},
 	}
@@ -75,7 +78,12 @@ func downloadCover(win fyne.Window, manga settings.Manga) {
 			dialog.ShowError(err, win)
 			fyne.CurrentApp().Quit()
 		}
-		defer res.Body.Close()
+		defer func(Body io.ReadCloser) {
+			err := Body.Close()
+			if err != nil {
+				log.Printf("Something went wrong when I tried to clse the socket, the error is %s", err)
+			}
+		}(res.Body)
 		if res.StatusCode != 200 {
 			err := errors.New(fmt.Sprintf("status code error while trying to extract images from %s: %d %s\nclick OK to continue...", manga.CoverUrl, res.StatusCode, res.Status))
 			dialog.ShowError(err, win)
@@ -86,7 +94,12 @@ func downloadCover(win fyne.Window, manga settings.Manga) {
 				dialog.ShowError(err, win)
 				fyne.CurrentApp().Quit()
 			}
-			defer file.Close()
+			defer func(file *os.File) {
+				err := file.Close()
+				if err != nil {
+					log.Printf("Something went wrong when I tried to clse the socket, the error is %s", err)
+				}
+			}(file)
 			// Use io.Copy to just dump the response body to the file. This supports huge files
 			_, err = io.Copy(file, res.Body)
 			if err != nil {

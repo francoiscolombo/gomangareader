@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"fyne.io/fyne"
 	"fyne.io/fyne/canvas"
+	"fyne.io/fyne/container"
 	"fyne.io/fyne/dialog"
 	"fyne.io/fyne/layout"
 	"fyne.io/fyne/theme"
@@ -27,7 +28,7 @@ func isMangaChapterExists(manga settings.Manga, chapter int) bool {
 func readChapter(app fyne.App, win fyne.Window, manga settings.Manga, chapter int) {
 	if isMangaChapterExists(manga, chapter) {
 		w := app.NewWindow(fmt.Sprintf("Read %s - chapter %d", manga.Name, chapter))
-		w.SetContent(widget.NewScrollContainer(widgetReader(app, w, manga, chapter)))
+		w.SetContent(container.NewScroll(widgetReader(app, w, manga, chapter)))
 		w.Resize(fyne.NewSize(pgWidth, pgHeight))
 		w.Show()
 		w.SetOnClosed(func() {
@@ -72,7 +73,7 @@ func widgetReader(app fyne.App, win fyne.Window, manga settings.Manga, chapter i
 
 	navBar := fyne.NewContainerWithLayout(
 		layout.NewGridLayout(2),
-		widget.NewHBox(
+		container.NewHBox(
 			widget.NewButtonWithIcon("[Prev]", theme.MediaFastRewindIcon(), func() {
 				pageNumber--
 				if pageNumber < 1 {

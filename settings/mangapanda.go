@@ -3,39 +3,42 @@ package settings
 import (
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
 	"path/filepath"
 	"strconv"
 	"strings"
 )
 
+const MangaPandaSiteUrl = "http://www.mangapanda.in"
+
 type MangaPanda struct{}
 
 func (provider MangaPanda) FindDetails(libraryPath, title string, lastChapter int) (manga Manga) {
-	// access detail data from mangapanda.com only
+	// access detail data from mangapanda.in only
 	// this is working only with this website
-	// cover image: present in div.mangaimg
-	// properties in div.mangaproperties
-	// description: div.readmangasum.p
-	// details: in a table inside div.mangaproperties, 1st column: property title, second column: value
-	// - name: 1st line
-	// - alternate name: 2nd line
-	// - year of release: 3rd line
-	// - status: 4th line
-	// - author: 5th line
-	// - artist: 6th line
-	// - reading direction: 7th line
-	// - genre: 8th line, inside span.genretags
-	req, _ := http.NewRequest("GET", fmt.Sprintf("https://www.mangapanda.com/%s", title), nil)
+	// cover image: present in div.cover-detail
+	// name: h1.title-manga
+	// remaining properties are inside a p.description-update tag
+	// for the description, we have to find div.manga-content and get the content of the embedded p tag
+	req, _ := http.NewRequest("GET", fmt.Sprintf("%s/manga/%s", MangaPandaSiteUrl, title), nil)
 	req.Header.Add("cache-control", "no-cache")
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		// handle error
-		log.Fatal(err)
+		log.Printf("Can't GET %s/manga/%s, error is %s", MangaPandaSiteUrl, title, err)
+		return
 	}
-	defer res.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			log.Printf("Something went wrong while trying to close the http client, error is %s", err)
+			return
+		}
+	}(res.Body)
 	if res.StatusCode != 200 {
 		log.Printf("status code error while trying to get details for title %s: %d %s", title, res.StatusCode, res.Status)
 		return
@@ -43,59 +46,62 @@ func (provider MangaPanda) FindDetails(libraryPath, title string, lastChapter in
 	body, _ := ioutil.ReadAll(res.Body)
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(string(body)))
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("Can't read body from %s/manga/%s, error is %s", MangaPandaSiteUrl, title, err)
+		return
 	}
 	// we are going to extract all of these
 	var coverUrl string
 	var description string
 	var name string
-	var alternateName string
-	var yearOfRelease string
-	var status string
+	var properties string
+	var alternate string
 	var author string
 	var artist string
-	var readingDirection string
+	var release string
+	var status string
 	// coverurl
-	doc.Find("#mangaimg").Each(func(i int, div *goquery.Selection) {
+	doc.Find(".cover-detail").Each(func(i int, div *goquery.Selection) {
 		div.Find("img").Each(func(i int, img *goquery.Selection) {
 			v, _ := img.Attr("src")
 			if strings.HasPrefix(v, "http") {
 				coverUrl = v
+				return
 			} else {
 				coverUrl = fmt.Sprintf("https:%s", v)
+				return
 			}
 		})
 	})
-	// parse table inside div.mangaproperties
-	doc.Find("#mangaproperties").Each(func(i int, div *goquery.Selection) {
-		div.Find("table").Each(func(i int, table *goquery.Selection) {
-			table.Find("tr").Each(func(ir int, row *goquery.Selection) {
-				row.Find("td").Each(func(ic int, cell *goquery.Selection) {
-					if ic == 1 {
-						if ir == 0 {
-							name = strings.TrimSpace(cell.Text())
-						} else if ir == 1 {
-							alternateName = strings.TrimSpace(cell.Text())
-						} else if ir == 2 {
-							yearOfRelease = strings.TrimSpace(cell.Text())
-						} else if ir == 3 {
-							status = strings.TrimSpace(cell.Text())
-						} else if ir == 4 {
-							author = strings.TrimSpace(cell.Text())
-						} else if ir == 5 {
-							artist = strings.TrimSpace(cell.Text())
-						} else if ir == 6 {
-							readingDirection = strings.TrimSpace(cell.Text())
-						}
-					}
-					return
-				})
-				return
-			})
-		})
+	// search name
+	doc.Find(".title-manga").Each(func(i int, h1 *goquery.Selection) {
+		name = h1.Text()
+		return
 	})
+	// extract properties
+	doc.Find(".description-update").Each(func(i int, p *goquery.Selection) {
+		properties = p.Text()
+		return
+	})
+	for _, line := range strings.Split(properties, "\n") {
+		fields := strings.Split(line, ":")
+		if len(fields) == 2 {
+			k := strings.ToLower(strings.TrimSpace(fields[0]))
+			v := strings.TrimSpace(fmt.Sprintf("%s", fields[1]))
+			if strings.HasPrefix(k, "alternative") {
+				alternate = v
+			} else if strings.HasPrefix(k, "author") {
+				author = v
+			} else if strings.HasPrefix(k, "artist") {
+				artist = v
+			} else if strings.HasPrefix(k, "status") {
+				status = v
+			} else if strings.HasPrefix(k, "release") {
+				release = v
+			}
+		}
+	}
 	// extract description
-	doc.Find("#readmangasum").Each(func(i int, div *goquery.Selection) {
+	doc.Find(".manga-content").Each(func(i int, div *goquery.Selection) {
 		div.Find("p").Each(func(i int, p *goquery.Selection) {
 			description = p.Text()
 			return
@@ -105,120 +111,136 @@ func (provider MangaPanda) FindDetails(libraryPath, title string, lastChapter in
 	coverPath := filepath.FromSlash(fmt.Sprintf("%s/%s-cover.jpg", metadataPath, title))
 	// create structure with details to keep
 	manga = Manga{
-		Provider:         "mangapanda.com",
-		Title:            title,
-		LastChapter:      lastChapter,
-		CoverPath:        coverPath,
-		CoverUrl:         coverUrl,
-		Path:             filepath.FromSlash(fmt.Sprintf("%s/%s", libraryPath, title)),
-		Name:             name,
-		AlternateName:    alternateName,
-		YearOfRelease:    yearOfRelease,
-		Status:           status,
-		Author:           author,
-		Artist:           artist,
-		ReadingDirection: readingDirection,
-		Description:      description,
+		Provider:      "mangapanda.in",
+		Title:         title,
+		LastChapter:   lastChapter,
+		CoverPath:     coverPath,
+		CoverUrl:      coverUrl,
+		Path:          filepath.FromSlash(fmt.Sprintf("%s/%s", libraryPath, title)),
+		Name:          name,
+		AlternateName: alternate,
+		YearOfRelease: release,
+		Status:        status,
+		Author:        author,
+		Artist:        artist,
+		Description:   strings.TrimSpace(description),
 	}
 	return
 }
 
 func (provider MangaPanda) GetPagesUrls(manga Manga) (pageLink []string) {
-	// for this site, we have one page showing at a time, with a link to the next page until the end of the chapter,
-	// which link to the next chapter instead.
-	// the image is located inside a div.imgholder, which contains the a.href with the link to the next page or next
-	// chapter, and inside the a with have a img (with id img but this is not relevant)
-	// so we have to iterate, until we reach the next chapter.
-	// we have to analyze the body since the images are located in a script
-	chapterLink := fmt.Sprintf("https://www.mangapanda.com/%s/%d", manga.Title, manga.LastChapter)
-	nextLink := chapterLink
-	for {
-		req, _ := http.NewRequest("GET", nextLink, nil)
-		req.Header.Add("cache-control", "no-cache")
-		res, err := http.DefaultClient.Do(req)
-		if err != nil {
-			// handle error
-			log.Fatal(err)
-		}
-		defer res.Body.Close()
-		if res.StatusCode != 200 {
-			log.Fatalf("status code error while trying to load pages for title %s: %d %s", manga.Title, res.StatusCode, res.Status)
-		}
-		body, _ := ioutil.ReadAll(res.Body)
-		doc, err := goquery.NewDocumentFromReader(strings.NewReader(string(body)))
-		if err != nil {
-			log.Fatal(err)
-		}
-		haveNextPage := true
-		doc.Find("#imgholder").Each(func(i int, div *goquery.Selection) {
-			div.Find("a").Each(func(i int, link *goquery.Selection) {
-				nextLink, _ = link.Attr("href")
-				nextLink = fmt.Sprintf("https://www.mangapanda.com%s",nextLink)
-				haveNextPage = strings.HasPrefix(nextLink, chapterLink)
-				log.Println("next link:",nextLink," have next page? ",haveNextPage)
-				link.Find("img").Each(func(i int, img *goquery.Selection) {
-					imgLink, _ := img.Attr("src")
-					log.Println("found image link:",imgLink)
-					if !contains(pageLink, imgLink) {
-						pageLink = append(pageLink, imgLink)
-					}
-				})
-			})
-		})
-		if !haveNextPage {
-			break
-		}
-	}
-	log.Println("links found:",pageLink)
-	return
-}
-
-func (provider MangaPanda) SearchManga(libraryPath, search string) (result []Manga) {
-	// we are going to search on the alphabetical list of the available mangas.
-	// no search in description on every single manga since it is too much time consuming
-	// we are just search in the text value of all the a.href starting with a /
-	req, _ := http.NewRequest("GET", "https://www.mangapanda.com/alphabetical", nil)
+	// for this site, we have all the pages for a chapter listed inside the body content
+	// they are located under a tag <p id=arraydata style=display:none>...</p> as a list
+	// separated by commas. so we just need to query this id, get the content, split the
+	// string by commas then we get our list of images.
+	// format of the url >
+	chapterLink := fmt.Sprintf("%s/%s-chapter-%d#1", MangaPandaSiteUrl, manga.Title, manga.LastChapter)
+	req, _ := http.NewRequest("GET", chapterLink, nil)
 	req.Header.Add("cache-control", "no-cache")
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		// handle error
-		log.Fatal(err)
+		log.Printf("Can't GET %s/%s-chapter-%d#1, error is %s", MangaPandaSiteUrl, manga.Title, manga.LastChapter, err)
+		return
 	}
-	defer res.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			log.Printf("Something went wrong while trying to close the http client, error is %s", err)
+			return
+		}
+	}(res.Body)
 	if res.StatusCode != 200 {
-		log.Fatalf("status code error while trying to find title %s: %d %s", search, res.StatusCode, res.Status)
+		log.Printf("status code error while trying to load pages for title %s: %d %s", manga.Title, res.StatusCode, res.Status)
 		return
 	}
 	body, _ := ioutil.ReadAll(res.Body)
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(string(body)))
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("Can't read body from %s/%s-chapter-%d#1, error is %s", MangaPandaSiteUrl, manga.Title, manga.LastChapter, err)
+		return
 	}
-	doc.Find("a").Each(func(i int, link *goquery.Selection) {
-		l, _ := link.Attr("href")
-		v := link.Text()
-		if strings.HasPrefix(l, "/") {
-			l = l[1:]
+	doc.Find("#arraydata").Each(func(i int, p *goquery.Selection) {
+		content := p.Text()
+		pageLink = strings.Split(content, ",")
+	})
+	log.Println("links found:", pageLink)
+	return
+}
+
+func (provider MangaPanda) SearchManga(libraryPath, search string) (result []Manga) {
+	// here to search mangas, we need to use the following query:
+	// http://mangapanda.in/search?q=<text>
+	prm := url.Values{}
+	prm.Add("q", search)
+	req, _ := http.NewRequest("GET", fmt.Sprintf("%s/search?%s", MangaPandaSiteUrl, prm.Encode()), nil)
+	req.Header.Add("cache-control", "no-cache")
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		// handle error
+		log.Printf("Can't GET %s/search?%s, error is %s", MangaPandaSiteUrl, prm.Encode(), err)
+		return
+	}
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			log.Printf("Something went wrong while trying to close the http client, error is %s", err)
+			return
 		}
-		if strings.Contains(strings.ToLower(v), strings.ToLower(search)) {
-			found := provider.FindDetails(libraryPath, l, 0)
-			result = append(result, found)
-		}
+	}(res.Body)
+	if res.StatusCode != 200 {
+		log.Printf("status code error while trying to find title %s: %d %s", search, res.StatusCode, res.Status)
+		return
+	}
+	body, _ := ioutil.ReadAll(res.Body)
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(string(body)))
+	if err != nil {
+		log.Printf("Can't read body from %s/search?%s, error is %s", MangaPandaSiteUrl, prm.Encode(), err)
+		return
+	}
+	doc.Find(".media-body").Each(func(i int, div *goquery.Selection) {
+		//log.Printf("SEARCH:> i:%d, selection is %s", i, div.Text())
+		div.Find("a").Each(func(i int, link *goquery.Selection) {
+			//log.Printf("SEARCH:> i:%d, embeded link is %s", i, link.Text())
+			l, _ := link.Attr("href")
+			log.Printf("SEARCH:> i:%d, embeded link ref is %s", i, l)
+			v := link.Text()
+			if strings.HasPrefix(l, "/") {
+				l = l[1:]
+			}
+			if strings.Contains(strings.ToLower(v), strings.ToLower(search)) {
+				ll := strings.Split(l, "/")
+				if len(ll) > 0 {
+					l = ll[len(ll)-1]
+				}
+				log.Printf("SEARCH:> this is a match, get details for title %s...", l)
+				found := provider.FindDetails(libraryPath, l, 0)
+				//log.Printf("SEARCH:> found %s", found)
+				result = append(result, found)
+			}
+		})
 	})
 	return
 }
 
 func (provider MangaPanda) CheckLastChapter(manga Manga) (lastChapter int) {
 	// the last chapter is available from the detail page, and its located in a div.latestchapters, and it is the first
-	// a.href. the link is on this format: /<title>/<chapter number>, so we need split on "/" and extract the item #2
-	req, _ := http.NewRequest("GET", fmt.Sprintf("https://www.mangapanda.com/%s", manga.Title), nil)
+	// a.href.
+	req, _ := http.NewRequest("GET", fmt.Sprintf("%s/manga/%s", MangaPandaSiteUrl, manga.Title), nil)
 	req.Header.Add("cache-control", "no-cache")
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		// handle error
-		log.Fatal(err)
+		log.Printf("Can't request %s, error is %s", manga.Provider, err)
+		return
 	}
-	defer res.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			log.Printf("Something went wrong while trying to close the http client, error is %s", err)
+			return
+		}
+	}(res.Body)
 	if res.StatusCode != 200 {
 		log.Printf("status code error while trying to get details for title %s: %d %s", manga.Title, res.StatusCode, res.Status)
 		return
@@ -226,21 +248,29 @@ func (provider MangaPanda) CheckLastChapter(manga Manga) (lastChapter int) {
 	body, _ := ioutil.ReadAll(res.Body)
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(string(body)))
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("Error while trying to retrieve manga %s, error is %s", manga.Title, err)
+		return
 	}
-	doc.Find("#latestchapters").Each(func(i int, div *goquery.Selection) {
+	lastChapter = -1
+	doc.Find(".chapter-list").Each(func(i int, div *goquery.Selection) {
 		div.Find("a").Each(func(i int, link *goquery.Selection) {
-			v, _ := link.Attr("href")
-			if i == 0 {
-				vv := strings.Split(v,"/")
-				fmt.Println("split>",vv)
-				lastChapter, err = strconv.Atoi(vv[2])
+			if lastChapter == -1 {
+				v, _ := link.Attr("href")
+				vv := strings.Split(v, "/")
+				vvv := strings.Split(vv[len(vv)-1], "-")
+				fmt.Println("split>", vvv)
+				lastChapter, err = strconv.Atoi(vvv[len(vvv)-1])
 				if err != nil {
-					log.Fatal(err)
+					log.Printf("Error while trying to get last chapter > %s", err)
+					lastChapter = -1
+				} else {
+					return
 				}
-				return
 			}
 		})
+		if lastChapter > 0 {
+			return
+		}
 	})
 	return
 }

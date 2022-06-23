@@ -50,13 +50,23 @@ func downloadImage(path string, page int, url string) (int, error) {
 	if err != nil {
 		return -1, err
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			log.Printf("Something went wront while trying to close http client, error is %s", err)
+		}
+	}(resp.Body)
 
 	out, err := os.Create(filepath.FromSlash(fmt.Sprintf("%s/page_%03d.jpg", path, page)))
 	if err != nil {
 		return -1, err
 	}
-	defer out.Close()
+	defer func(out *os.File) {
+		err := out.Close()
+		if err != nil {
+			log.Printf("Something went wront while trying to close http client, error is %s", err)
+		}
+	}(out)
 
 	_, err = io.Copy(out, resp.Body)
 	return resp.StatusCode, err
@@ -66,9 +76,9 @@ func showDownloadChapters(app fyne.App, win fyne.Window, manga settings.Manga) {
 	prog := dialog.NewProgress(fmt.Sprintf("Downloading new chapters for %s", manga.Name), fmt.Sprintf("Chapter %03d: download in progress....", manga.LastChapter), win)
 	go func() {
 		var provider settings.MangaProvider
-		if manga.Provider == "mangareader.net" {
+		if manga.Provider == "mangareader.cc" {
 			provider = settings.MangaReader{}
-		} else if manga.Provider == "mangapanda.com" {
+		} else if manga.Provider == "mangapanda.in" {
 			provider = settings.MangaPanda{}
 		}
 		imageLinks := provider.GetPagesUrls(manga)
@@ -139,7 +149,6 @@ func showDownloadChapters(app fyne.App, win fyne.Window, manga settings.Manga) {
 			// and now create the new cbz from that temporary directory
 			err = createCBZ(manga.Path, tempDirectory, manga.Title, manga.LastChapter)
 			if err != nil {
-				log.Panicln(err)
 				dialog.ShowError(err, win)
 				fyne.CurrentApp().Quit()
 			}

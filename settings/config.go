@@ -18,18 +18,17 @@ type History struct {
 
 // Manga keep the download history for every mangas that we are subscribing
 type Manga struct {
-	Provider         string `json:"provider"`
-	Title            string `json:"title"`
-	LastChapter      int    `json:"last_chapter"`
-	CoverPath        string `json:"cover_path"`
-	Path             string `json:"path"`
-	CoverUrl         string `json:"cover_url"`
-	Name             string `json:"name"`
-	AlternateName    string `json:"alternate_name"`
-	YearOfRelease    string `json:"year_of_release"`
-	Status           string `json:"status"`
-	Author           string `json:"author"`
-	Artist           string `json:"artist"`
-	ReadingDirection string `json:"reading_direction"`
-	Description      string `json:"description"`
+	Provider      string `json:"provider"`
+	Title         string `json:"title"`
+	LastChapter   int    `json:"last_chapter"`
+	CoverPath     string `json:"cover_path"`
+	Path          string `json:"path"`
+	CoverUrl      string `json:"cover_url"`
+	Name          string `json:"name"`
+	AlternateName string `json:"alternate_name"`
+	YearOfRelease string `json:"year_of_release"`
+	Status        string `json:"status"`
+	Author        string `json:"author"`
+	Artist        string `json:"artist"`
+	Description   string `json:"description"`
 }
