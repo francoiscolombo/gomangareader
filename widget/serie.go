@@ -19,50 +19,61 @@ func checkNewChapters(manga settings.Manga) bool {
 	var provider settings.MangaProvider
 	if manga.Provider == "mangareader.cc" {
 		provider = settings.MangaReader{}
-		return provider.CheckLastChapter(manga) >= manga.LastChapter
-	} else if manga.Provider == "mangapanda.in" {
-		provider = settings.MangaPanda{}
-		return provider.CheckLastChapter(manga) >= manga.LastChapter
+		checkLastChapter := provider.CheckLastChapter(manga)
+		if manga.LastChapter < checkLastChapter {
+			return true
+		}
 	}
 	return false
 }
 
 func chaptersPanel(app fyne.App, win fyne.Window, manga settings.Manga, available bool) *fyne.Container {
 	var chaps []string
-	currentChapter := app.Preferences().Int(manga.Title)
-	if currentChapter <= 0 {
-		currentChapter = 1
+	currentChapterIndex := app.Preferences().Int(manga.Title)
+	currentChapter := 0.0
+	if len(manga.Chapters) == 0 {
+		currentChapter = 1.0
+	} else {
+		currentChapter = manga.Chapters[currentChapterIndex]
 	}
-	nbChapters := manga.LastChapter - 1
-	for i := 1; i <= nbChapters; i++ {
-		chaps = append(chaps, fmt.Sprintf("Chapter %d / %d", i, nbChapters))
+
+	for i := 0; i < len(manga.Chapters); i++ {
+		chaps = append(chaps, fmt.Sprintf("Chapter %.1f", manga.Chapters[i]))
 	}
 	thumbnailPath := filepath.Dir(manga.CoverPath)
 
 	thumbnailView := &canvas.Image{FillMode: canvas.ImageFillOriginal}
-	thumbnailView.File = filepath.FromSlash(fmt.Sprintf("%s/%s-%03d.jpg", thumbnailPath, manga.Title, currentChapter))
+	thumbnailView.File = filepath.FromSlash(fmt.Sprintf("%s/%s-%03.1f.jpg", thumbnailPath, manga.Title, currentChapter))
 	canvas.Refresh(thumbnailView)
 
 	selChapter := widget.NewSelect(chaps, func(s string) {
 		f := strings.Fields(s)
-		currentChapter, _ = strconv.Atoi(f[1])
-		thumbnailView.File = filepath.FromSlash(fmt.Sprintf("%s/%s-%03d.jpg", thumbnailPath, manga.Title, currentChapter))
+		currentChapter, _ = strconv.ParseFloat(f[1], 64)
+		for i := 0; i < len(manga.Chapters); i++ {
+			if fmt.Sprintf("3.1f", manga.Chapters[i]) == fmt.Sprintf("3.1f", currentChapter) {
+				currentChapterIndex = i
+				break
+			}
+		}
+		thumbnailView.File = filepath.FromSlash(fmt.Sprintf("%s/%s-%03.1f.jpg", thumbnailPath, manga.Title, currentChapter))
 		canvas.Refresh(thumbnailView)
 	})
-	selChapter.SetSelected(fmt.Sprintf("Chapter %d / %d", currentChapter, nbChapters))
+	selChapter.SetSelected(fmt.Sprintf("Chapter %.1f", currentChapter))
 	prev := widget.NewButtonWithIcon("", theme.NavigateBackIcon(), func() {
-		currentChapter--
-		if currentChapter < 1 {
-			currentChapter = 1
+		currentChapterIndex = currentChapterIndex - 1
+		if currentChapterIndex < 1 {
+			currentChapterIndex = 0
 		}
-		selChapter.SetSelected(fmt.Sprintf("Chapter %d / %d", currentChapter, nbChapters))
+		currentChapter = manga.Chapters[currentChapterIndex]
+		selChapter.SetSelected(fmt.Sprintf("Chapter %.1f", currentChapter))
 	})
 	next := widget.NewButtonWithIcon("", theme.NavigateNextIcon(), func() {
-		currentChapter++
-		if currentChapter > nbChapters {
-			currentChapter = nbChapters
+		currentChapterIndex = currentChapterIndex + 1
+		if currentChapterIndex > (len(manga.Chapters) - 1) {
+			currentChapterIndex = (len(manga.Chapters) - 1)
 		}
-		selChapter.SetSelected(fmt.Sprintf("Chapter %d / %d", currentChapter, nbChapters))
+		currentChapter = manga.Chapters[currentChapterIndex]
+		selChapter.SetSelected(fmt.Sprintf("Chapter %.1f", currentChapter))
 	})
 	read := widget.NewButtonWithIcon("Read this chapter...", theme.DocumentIcon(), func() {
 		readChapter(app, win, manga, currentChapter)
@@ -113,7 +124,7 @@ func widgetDetailSerie(app fyne.App, win fyne.Window, manga settings.Manga) *fyn
 			widget.NewLabel(manga.AlternateName),
 			widget.NewLabel(manga.YearOfRelease),
 			widget.NewLabel(manga.Status),
-			widget.NewLabel(fmt.Sprintf("%d", manga.LastChapter-1)),
+			widget.NewLabel(fmt.Sprintf("%d", len(manga.Chapters)+1)),
 			widget.NewLabel(manga.Author),
 			widget.NewLabel(manga.Artist),
 			widget.NewLabel("")))

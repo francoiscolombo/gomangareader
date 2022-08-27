@@ -55,14 +55,14 @@ func ReadSettings() (settings Settings) {
 
 	// Open our jsonFile
 	settingsPath := getSettingsPath()
-	fmt.Printf("Loading settings from %s...\n", settingsPath)
+	//fmt.Printf("Loading settings from %s...\n", settingsPath)
 	jsonFile, err := os.Open(settingsPath)
 	// if we os.Open returns an error then handle it
 	if err != nil {
 		log.Fatalf("Error when trying to open settings file: %s\n", err)
 	}
 
-	log.Println("Successfully Opened settings.json")
+	//log.Println("Successfully Opened settings.json")
 	// defer the closing of our jsonFile so that we can parse it later on
 	defer func(jsonFile *os.File) {
 		err := jsonFile.Close()
@@ -95,25 +95,14 @@ func WriteSettings(settings Settings) {
 /*
 UpdateHistory register the last chapter downloaded for a manga, and the last provider used
 */
-func UpdateHistory(cfg Settings, provider, manga string, chapter int) (newSettings Settings) {
-	if chapter < 0 {
-		chapter = 1
-	}
+func UpdateHistory(cfg Settings, manga Manga) (newSettings Settings) {
 	var titles []Manga
 	for _, title := range cfg.History.Titles {
-		if title.Title != manga {
-			titles = append(titles, Manga{
-				Provider:    provider,
-				Title:       title.Title,
-				LastChapter: title.LastChapter,
-			})
+		if title.Title != manga.Title {
+			titles = append(titles, title)
 		}
 	}
-	titles = append(titles, Manga{
-		Provider:    provider,
-		Title:       manga,
-		LastChapter: chapter,
-	})
+	titles = append(titles, manga)
 	newSettings = Settings{
 		Config{
 			LibraryPath: cfg.Config.LibraryPath,
@@ -123,6 +112,6 @@ func UpdateHistory(cfg Settings, provider, manga string, chapter int) (newSettin
 		},
 	}
 	WriteSettings(newSettings)
-	log.Println("History updated.")
+	//log.Println("History updated.")
 	return
 }

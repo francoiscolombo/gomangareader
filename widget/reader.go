@@ -16,8 +16,8 @@ import (
 	"path/filepath"
 )
 
-func isMangaChapterExists(manga settings.Manga, chapter int) bool {
-	cbzPath := filepath.FromSlash(fmt.Sprintf("%s/%s-%03d.cbz", manga.Path, manga.Title, chapter))
+func isMangaChapterExists(manga settings.Manga, chapter float64) bool {
+	cbzPath := filepath.FromSlash(fmt.Sprintf("%s/%s-%03.1f.cbz", manga.Path, manga.Title, chapter))
 	info, err := os.Stat(cbzPath)
 	if os.IsNotExist(err) {
 		return false
@@ -25,9 +25,9 @@ func isMangaChapterExists(manga settings.Manga, chapter int) bool {
 	return !info.IsDir()
 }
 
-func readChapter(app fyne.App, win fyne.Window, manga settings.Manga, chapter int) {
+func readChapter(app fyne.App, win fyne.Window, manga settings.Manga, chapter float64) {
 	if isMangaChapterExists(manga, chapter) {
-		w := app.NewWindow(fmt.Sprintf("Read %s - chapter %d", manga.Name, chapter))
+		w := app.NewWindow(fmt.Sprintf("Read %s - chapter %.1f", manga.Name, chapter))
 		w.SetContent(container.NewScroll(widgetReader(app, w, manga, chapter)))
 		w.Resize(fyne.NewSize(pgWidth, pgHeight))
 		w.Show()
@@ -41,22 +41,22 @@ func readChapter(app fyne.App, win fyne.Window, manga settings.Manga, chapter in
 			}
 		})
 	} else {
-		err := errors.New(fmt.Sprintf("The chapter %03d for the \"%s\" does not exists on the file system, sorry we can't read it!", chapter, manga.Name))
+		err := errors.New(fmt.Sprintf("The chapter %03.1f for the \"%s\" does not exists on the file system, sorry we can't read it!", chapter, manga.Name))
 		dialog.ShowError(err, win)
 	}
 }
 
-func widgetReader(app fyne.App, win fyne.Window, manga settings.Manga, chapter int) *fyne.Container {
-	app.Preferences().SetInt(manga.Title, chapter)
+func widgetReader(app fyne.App, win fyne.Window, manga settings.Manga, chapter float64) *fyne.Container {
+	app.Preferences().SetFloat(manga.Title, chapter)
 	metadataPath := filepath.Dir(manga.CoverPath)
 	tmpDir := filepath.FromSlash(fmt.Sprintf("%s/%s/viewer", metadataPath, manga.Title))
-	cbzPath := filepath.FromSlash(fmt.Sprintf("%s/%s-%03d.cbz", manga.Path, manga.Title, chapter))
+	cbzPath := filepath.FromSlash(fmt.Sprintf("%s/%s-%03.1f.cbz", manga.Path, manga.Title, chapter))
 	pages, err := archive.Unzip(cbzPath, tmpDir)
 	if err != nil {
 		msg := errors.New(fmt.Sprintf("Error when trying to unzip %s to temporary view folder %s: %s", cbzPath, tmpDir, err))
 		dialog.ShowError(msg, win)
 	}
-	pageNumber := app.Preferences().Int(fmt.Sprintf("%s/%d/page/", manga.Title, chapter))
+	pageNumber := app.Preferences().Int(fmt.Sprintf("%s/%.1f/page/", manga.Title, chapter))
 	if pageNumber <= 0 {
 		pageNumber = 1
 	}
@@ -79,7 +79,7 @@ func widgetReader(app fyne.App, win fyne.Window, manga settings.Manga, chapter i
 				if pageNumber < 1 {
 					pageNumber = 1
 				}
-				app.Preferences().SetInt(fmt.Sprintf("%s/%d/page/", manga.Title, chapter), pageNumber)
+				app.Preferences().SetInt(fmt.Sprintf("%s/%.1f/page/", manga.Title, chapter), pageNumber)
 				displayPage.SetText(fmt.Sprintf("Page %d / %d", pageNumber, nbPages))
 				pageProgress.SetValue(float64(pageNumber) / float64(nbPages))
 				pageView.File = pages[pageNumber-1]
@@ -91,7 +91,7 @@ func widgetReader(app fyne.App, win fyne.Window, manga settings.Manga, chapter i
 				if pageNumber > nbPages {
 					pageNumber = nbPages
 				}
-				app.Preferences().SetInt(fmt.Sprintf("%s/%d/page/", manga.Title, chapter), pageNumber)
+				app.Preferences().SetInt(fmt.Sprintf("%s/%.1f/page/", manga.Title, chapter), pageNumber)
 				displayPage.SetText(fmt.Sprintf("Page %d / %d", pageNumber, nbPages))
 				pageProgress.SetValue(float64(pageNumber) / float64(nbPages))
 				pageView.File = pages[pageNumber-1]

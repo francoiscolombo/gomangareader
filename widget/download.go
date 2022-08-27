@@ -73,13 +73,11 @@ func downloadImage(path string, page int, url string) (int, error) {
 }
 
 func showDownloadChapters(app fyne.App, win fyne.Window, manga settings.Manga) {
-	prog := dialog.NewProgress(fmt.Sprintf("Downloading new chapters for %s", manga.Name), fmt.Sprintf("Chapter %03d: download in progress....", manga.LastChapter), win)
+	prog := dialog.NewProgress(fmt.Sprintf("Downloading new chapters for %s", manga.Name), fmt.Sprintf("Chapter %03.1f: download in progress....", manga.LastChapter), win)
 	go func() {
 		var provider settings.MangaProvider
 		if manga.Provider == "mangareader.cc" {
 			provider = settings.MangaReader{}
-		} else if manga.Provider == "mangapanda.in" {
-			provider = settings.MangaPanda{}
 		}
 		imageLinks := provider.GetPagesUrls(manga)
 		// okay now we have all images links, so download all the images... if we have any
@@ -155,14 +153,22 @@ func showDownloadChapters(app fyne.App, win fyne.Window, manga settings.Manga) {
 		}
 		prog.SetValue(1)
 		// update history
-		manga.LastChapter = manga.LastChapter + 1
-		*globalConfig = settings.UpdateHistory(*globalConfig, manga.Provider, manga.Title, manga.LastChapter)
-		prog.Hide()
-		if manga.LastChapter <= provider.CheckLastChapter(manga) {
-			showDownloadChapters(app, win, manga)
-		} else {
-			updateLibrary(app, win)
+		lastChapterIndex := -1
+		for i := 0; i < len(manga.Chapters); i++ {
+			if manga.Chapters[i] > manga.LastChapter {
+				lastChapterIndex = i
+				break
+			}
 		}
+		prog.Hide()
+		if lastChapterIndex >= 0 {
+			manga.LastChapter = manga.Chapters[lastChapterIndex]
+			*globalConfig = settings.UpdateHistory(*globalConfig, manga)
+			if manga.LastChapter <= provider.CheckLastChapter(manga) {
+				showDownloadChapters(app, win, manga)
+			}
+		}
+		//updateLibrary(app, win)
 	}()
 	prog.Show()
 }

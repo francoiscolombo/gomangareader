@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 )
 
-func createCBZ(outputPath, pagesPath, title string, chapter int) error {
+func createCBZ(outputPath, pagesPath, title string, chapter float64) error {
 	// create output path
 	err := os.MkdirAll(outputPath, os.ModePerm)
 	if err != nil {
@@ -17,7 +17,7 @@ func createCBZ(outputPath, pagesPath, title string, chapter int) error {
 	}
 	// List of Files to Zip
 	var files []string
-	outputCBZ := filepath.FromSlash(fmt.Sprintf("%s/%s-%03d.cbz", outputPath, title, chapter))
+	outputCBZ := filepath.FromSlash(fmt.Sprintf("%s/%s-%03.1f.cbz", outputPath, title, chapter))
 	//fmt.Printf("\ncreate %s ... ", outputCBZ)
 	err = filepath.Walk(pagesPath, func(path string, info os.FileInfo, err error) error {
 		src, err := os.Stat(path)

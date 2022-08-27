@@ -36,13 +36,12 @@ func UpdateMetaData(win fyne.Window, config settings.Settings) {
 	var mangaUpdatedList []settings.Manga
 	for _, manga := range config.History.Titles {
 		var provider settings.MangaProvider
-		if manga.Provider == "mangapanda.in" {
-			provider = settings.MangaPanda{}
-		} else if manga.Provider == "mangareader.cc" {
+		if manga.Provider == "mangareader.cc" {
 			provider = settings.MangaReader{}
 		}
 		if provider != nil {
 			newManga := provider.FindDetails(config.Config.LibraryPath, manga.Title, manga.LastChapter)
+			provider.BuildChaptersList(&newManga)
 			mangaUpdatedList = append(mangaUpdatedList, newManga)
 			// download cover picture (if needed)
 			downloadCover(win, newManga)
@@ -70,7 +69,7 @@ DownloadCover simply download a cover for a manga title
 func downloadCover(win fyne.Window, manga settings.Manga) {
 	// download only if does not exists
 	if _, err := os.Stat(manga.CoverPath); os.IsNotExist(err) {
-		fmt.Printf("- %s does not exists yet, we have to download it....", manga.CoverPath)
+		//fmt.Printf("- %s does not exists yet, we have to download it....", manga.CoverPath)
 		req, _ := http.NewRequest("GET", manga.CoverUrl, nil)
 		req.Header.Add("cache-control", "no-cache")
 		res, err := http.DefaultClient.Do(req)
@@ -115,15 +114,12 @@ func downloadCover(win fyne.Window, manga settings.Manga) {
 ExtractFirstPage allows to extract the first page of a cbz archive to generate a thumbnail
 */
 func extractFirstPages(win fyne.Window, globalPath string, manga settings.Manga) {
-	for i := 1; i < manga.LastChapter; i++ {
-		cbzArchive := filepath.FromSlash(fmt.Sprintf("%s/%s/%s-%03d.cbz", globalPath, manga.Title, manga.Title, i))
-		cbzThumbnail := filepath.FromSlash(fmt.Sprintf("%s/.metadata/%s-%03d.jpg", globalPath, manga.Title, i))
+	for i := 0; i < len(manga.Chapters); i++ {
+		cbzArchive := filepath.FromSlash(fmt.Sprintf("%s/%s/%s-%03.1f.cbz", globalPath, manga.Title, manga.Title, manga.Chapters[i]))
+		cbzThumbnail := filepath.FromSlash(fmt.Sprintf("%s/.metadata/%s-%03.1f.jpg", globalPath, manga.Title, manga.Chapters[i]))
 		if _, err := os.Stat(cbzThumbnail); os.IsNotExist(err) {
 			r, err := zip.OpenReader(cbzArchive)
-			if err != nil {
-				msg := errors.New(fmt.Sprintf("[Skipped] Error while opening archive\n%s\n%s\nclick OK to continue...", cbzArchive, err))
-				dialog.ShowError(msg, win)
-			} else {
+			if err == nil {
 				f := r.File[0]
 				outFile, err := os.OpenFile(cbzThumbnail, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
 				if err != nil {
