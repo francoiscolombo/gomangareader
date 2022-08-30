@@ -54,7 +54,7 @@ func widgetSearchResults(app fyne.App, win fyne.Window, w fyne.Window, result []
 						widget.NewLabelWithStyle("Please wait, refreshing your library...", fyne.TextAlignCenter, fyne.TextStyle{Bold: true, Italic: true}),
 						widget.NewProgressBarInfinite()),
 					)
-					updateLibrary(app, win)
+					updateLibrary(app, win, true)
 					dialog.ShowInformation("Information", fmt.Sprintf("The new serie \"%s\"\nis now part of your collection,\ncongratulations.", m.Name), w)
 					fyne.CurrentApp().SendNotification(&fyne.Notification{
 						Title:   "GoMangaReader",

@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"os/user"
+	"sort"
 )
 
 func getSettingsPath() string {
@@ -81,6 +82,12 @@ func ReadSettings() (settings Settings) {
 		return Settings{}
 	}
 
+	titles := settings.History.Titles
+	sort.Slice(titles, func(i, j int) bool {
+		return titles[i].Title < titles[j].Title
+	})
+	settings.History.Titles = titles
+
 	return
 }
 
@@ -103,6 +110,9 @@ func UpdateHistory(cfg Settings, manga Manga) (newSettings Settings) {
 		}
 	}
 	titles = append(titles, manga)
+	sort.Slice(titles, func(i, j int) bool {
+		return titles[i].Title < titles[j].Title
+	})
 	newSettings = Settings{
 		Config{
 			LibraryPath: cfg.Config.LibraryPath,

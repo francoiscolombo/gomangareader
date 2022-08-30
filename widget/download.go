@@ -12,7 +12,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"runtime"
 	"sync"
 	"time"
 )
@@ -74,23 +73,23 @@ func downloadImage(path string, page int, url string) (int, error) {
 
 func showDownloadChapters(app fyne.App, win fyne.Window, manga settings.Manga) {
 	prog := dialog.NewProgress(fmt.Sprintf("Downloading new chapters for %s", manga.Name), fmt.Sprintf("Chapter %03.1f: download in progress....", manga.LastChapter), win)
-	go func() {
-		var provider settings.MangaProvider
-		if manga.Provider == "mangareader.cc" {
-			provider = settings.MangaReader{}
-		}
-		imageLinks := provider.GetPagesUrls(manga)
-		// okay now we have all images links, so download all the images... if we have any
-		if len(imageLinks) > 0 {
-			tempDirectory, err := ioutil.TempDir("", manga.Title)
-			if err != nil {
-				dialog.ShowError(err, win)
-				fyne.CurrentApp().Quit()
-			}
+	var provider settings.MangaProvider
+	if manga.Provider == "mangareader.cc" {
+		provider = settings.MangaReader{}
+	}
+	imageLinks := provider.GetPagesUrls(manga)
+	// okay now we have all images links, so download all the images... if we have any
+	if len(imageLinks) > 0 {
+		tempDirectory, err := ioutil.TempDir("", manga.Title)
+		if err != nil {
+			dialog.ShowError(err, win)
+			return
+		} else {
 			pageNumber := 0
 			nbPages := len(imageLinks)
 			for {
-				nbJobs := runtime.NumCPU() - 1
+				//nbJobs := runtime.NumCPU() - 1
+				nbJobs := 4
 				if (pageNumber + nbJobs) > nbPages {
 					nbJobs = nbPages - pageNumber
 				}
@@ -132,43 +131,32 @@ func showDownloadChapters(app fyne.App, win fyne.Window, manga settings.Manga) {
 					break
 				}
 			}
-			/*
-				for pageNumber, imgLink := range imageLinks {
-					log.Printf("Download page %d from url %s in temp directory %s\n",pageNumber,imgLink,tempDirectory)
-					prog.SetValue(float64(pageNumber) / float64(len(imageLinks)))
-					err := downloadImage(tempDirectory, pageNumber, imgLink)
-					if err != nil {
-						msg := errors.New(fmt.Sprintf("Issue when downloading page %d from url:\n%s\nthe error is: %s\nclick OK to continue...", pageNumber, imgLink, err))
-						dialog.ShowError(msg, win)
-						break
-					}
-				}
-			*/
 			// and now create the new cbz from that temporary directory
 			err = createCBZ(manga.Path, tempDirectory, manga.Title, manga.LastChapter)
 			if err != nil {
 				dialog.ShowError(err, win)
-				fyne.CurrentApp().Quit()
+				return
+			} else {
+				prog.SetValue(1)
+				// update history
+				lastChapterIndex := -1
+				for i := 0; i < len(manga.Chapters); i++ {
+					if manga.Chapters[i] > manga.LastChapter {
+						lastChapterIndex = i
+						break
+					}
+				}
+				prog.Hide()
+				if lastChapterIndex >= 0 {
+					manga.LastChapter = manga.Chapters[lastChapterIndex]
+					*globalConfig = settings.UpdateHistory(*globalConfig, manga)
+					if manga.LastChapter <= provider.CheckLastChapter(manga) {
+						showDownloadChapters(app, win, manga)
+					}
+				}
+				//updateLibrary(app, win)
+				prog.Show()
 			}
 		}
-		prog.SetValue(1)
-		// update history
-		lastChapterIndex := -1
-		for i := 0; i < len(manga.Chapters); i++ {
-			if manga.Chapters[i] > manga.LastChapter {
-				lastChapterIndex = i
-				break
-			}
-		}
-		prog.Hide()
-		if lastChapterIndex >= 0 {
-			manga.LastChapter = manga.Chapters[lastChapterIndex]
-			*globalConfig = settings.UpdateHistory(*globalConfig, manga)
-			if manga.LastChapter <= provider.CheckLastChapter(manga) {
-				showDownloadChapters(app, win, manga)
-			}
-		}
-		//updateLibrary(app, win)
-	}()
-	prog.Show()
+	}
 }

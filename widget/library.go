@@ -19,8 +19,8 @@ const (
 	versionNumber = "2.0"
 	versionName   = "Another Dimension"
 
-	thWidth   = 144
-	thHeight  = 192
+	thWidth   = 128
+	thHeight  = 170
 	chWidth   = 48
 	chHeight  = 64
 	pgWidth   = 600
@@ -35,12 +35,12 @@ ShowLibrary allow to display the mangas in a GUI.
 */
 func ShowLibrary() {
 
-	r, _ := fyne.LoadResourceFromPath("./icon.png")
+	r, _ := fyne.LoadResourceFromPath("./gomangareader.png")
 	libraryViewer := app.NewWithID("gomangareader")
 	libraryViewer.SetIcon(r)
 
 	windows := libraryViewer.NewWindow("GoMangaReader - Update in progress...")
-	windows.SetContent(fyne.NewContainerWithLayout(layout.NewGridWrapLayout(fyne.NewSize(400, 20)),
+	windows.SetContent(fyne.NewContainerWithLayout(layout.NewGridWrapLayout(fyne.NewSize(400, 30)),
 		widget.NewLabelWithStyle("Please wait, loading and updating your library...", fyne.TextAlignCenter, fyne.TextStyle{Bold: true, Italic: true}),
 		widget.NewProgressBarInfinite()),
 	)
@@ -49,13 +49,13 @@ func ShowLibrary() {
 	windows.Show()
 
 	go func() {
-		updateLibrary(libraryViewer, windows)
+		updateLibrary(libraryViewer, windows, false)
 	}()
 
 	libraryViewer.Run()
 }
 
-func updateLibrary(app fyne.App, win fyne.Window) {
+func updateLibrary(app fyne.App, win fyne.Window, full bool) {
 	win.SetTitle("GoMangaReader - Update in progress...")
 	if settings.IsSettingsExisting() == false {
 		settings.WriteDefaultSettings()
@@ -64,7 +64,9 @@ func updateLibrary(app fyne.App, win fyne.Window) {
 	globalConfig = &cfg
 	//log.Println("- Settings loaded.")
 	//log.Printf("  > Library path is %s\n", globalConfig.Config.LibraryPath)
-	UpdateMetaData(win, *globalConfig)
+	if full == true {
+		UpdateMetaData(win, *globalConfig)
+	}
 	cfg = settings.ReadSettings()
 	globalConfig = &cfg
 	content := fyne.NewContainerWithLayout(layout.NewGridLayout(10))
@@ -83,7 +85,7 @@ func updateLibrary(app fyne.App, win fyne.Window) {
 }
 
 func widgetUpdateCollections(app fyne.App, win fyne.Window) *fyne.Container {
-	return fyne.NewContainerWithLayout(layout.NewGridLayout(2),
+	return fyne.NewContainerWithLayout(layout.NewGridLayout(3),
 		widget.NewButtonWithIcon("Search series to add to the collection", theme.SearchIcon(), func() {
 			newSerie := widget.NewEntry()
 			selectProvider := widget.NewRadioGroup([]string{"mangareader.cc"}, func(provider string) {
@@ -111,7 +113,7 @@ func widgetUpdateCollections(app fyne.App, win fyne.Window) *fyne.Container {
 				if !b {
 					return
 				}
-				updateLibrary(app, win)
+				updateLibrary(app, win, true)
 				canvas.Refresh(win.Canvas().Content())
 				fyne.CurrentApp().SendNotification(&fyne.Notification{
 					Title:   "GoMangaReader",
@@ -120,6 +122,22 @@ func widgetUpdateCollections(app fyne.App, win fyne.Window) *fyne.Container {
 			}, win)
 			cnf.SetDismissText("Nah")
 			cnf.SetConfirmText("Oh Yes!")
+			cnf.Show()
+		}),
+		widget.NewButtonWithIcon("Download all missing", theme.DownloadIcon(), func() {
+			cnf := dialog.NewConfirm("Confirmation", "Are you sure you want to\ndownload all missing chapters?\nthis will take a while...", func(b bool) {
+				if !b {
+					return
+				}
+				downloadEverything(app, win)
+				canvas.Refresh(win.Canvas().Content())
+				fyne.CurrentApp().SendNotification(&fyne.Notification{
+					Title:   "GoMangaReader",
+					Content: "All the missing chapters are downloaded.",
+				})
+			}, win)
+			cnf.SetDismissText("Well, maybe not...")
+			cnf.SetConfirmText("Yeah man, let's do it.")
 			cnf.Show()
 		}),
 	)
@@ -140,4 +158,11 @@ func widgetSerie(app fyne.App, manga settings.Manga) *fyne.Container {
 		fyne.NewContainerWithLayout(layout.NewGridWrapLayout(fyne.NewSize(thWidth, btnHeight)), widget.NewButton("Show", func() {
 			showSerieDetail(app, manga)
 		})))
+}
+
+func downloadEverything(a fyne.App, win fyne.Window) {
+	log.Println("Run download on everything...")
+	for _, manga := range globalConfig.History.Titles {
+		showDownloadChapters(a, win, manga)
+	}
 }
