@@ -39,7 +39,20 @@ func WriteDefaultSettings() {
 	log.Printf("Hello %s ! You don't have any settings yet. I can see that your homedir is %s, I will use it if you don't mind.\n", usr.Name, usr.HomeDir)
 	settings := Settings{
 		Config{
-			LibraryPath: fmt.Sprintf("%s/mangas", usr.HomeDir),
+			LibraryPath:          fmt.Sprintf("%s/mangas", usr.HomeDir),
+			AutoUpdate:           false,
+			NbColumns:            6,
+			NbRows:               4,
+			PageWidth:            600,
+			PageHeight:           1200,
+			ThumbMiniWidth:       64,
+			ThumbMiniHeight:      96,
+			LeftRightButtonWidth: 24,
+			ChapterLabelWidth:    384,
+			ThumbnailWidth:       128,
+			ThumbnailHeight:      196,
+			ThumbTextHeight:      20,
+			NbWorkers:            4,
 		},
 		History{
 			Titles: []Manga{},
@@ -115,7 +128,20 @@ func UpdateHistory(cfg Settings, manga Manga) (newSettings Settings) {
 	})
 	newSettings = Settings{
 		Config{
-			LibraryPath: cfg.Config.LibraryPath,
+			LibraryPath:          cfg.Config.LibraryPath,
+			AutoUpdate:           cfg.Config.AutoUpdate,
+			NbColumns:            cfg.Config.NbColumns,
+			NbRows:               cfg.Config.NbRows,
+			PageWidth:            cfg.Config.PageWidth,
+			PageHeight:           cfg.Config.PageHeight,
+			ThumbMiniWidth:       cfg.Config.ThumbMiniWidth,
+			ThumbMiniHeight:      cfg.Config.ThumbMiniHeight,
+			LeftRightButtonWidth: cfg.Config.LeftRightButtonWidth,
+			ChapterLabelWidth:    cfg.Config.ChapterLabelWidth,
+			ThumbnailWidth:       cfg.Config.ThumbnailWidth,
+			ThumbnailHeight:      cfg.Config.ThumbnailHeight,
+			ThumbTextHeight:      cfg.Config.ThumbTextHeight,
+			NbWorkers:            cfg.Config.NbWorkers,
 		},
 		History{
 			Titles: titles,

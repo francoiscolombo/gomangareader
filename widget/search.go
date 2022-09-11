@@ -3,70 +3,167 @@ package widget
 import (
 	"fmt"
 	"fyne.io/fyne"
-	"fyne.io/fyne/container"
-	"fyne.io/fyne/dialog"
-	"fyne.io/fyne/layout"
+	"fyne.io/fyne/canvas"
 	"fyne.io/fyne/theme"
 	"fyne.io/fyne/widget"
 	"github.com/francoiscolombo/gomangareader/settings"
+	"image/color"
+	"sort"
 )
 
-func showSearchResults(app fyne.App, win fyne.Window, search string, results []settings.Manga) {
-	w := app.NewWindow(fmt.Sprintf("%s - results", search))
-	w.SetContent(widgetSearchResults(app, win, w, results))
-	w.Resize(fyne.NewSize(thWidth*3, thHeight*2))
-	w.Show()
+type Search struct {
+	widget.BaseWidget
+	Application      fyne.App
+	Provider         string
+	Search           string
+	Results          []settings.Manga
+	SearchInProgress bool
 }
 
-func widgetSearchResults(app fyne.App, win fyne.Window, w fyne.Window, result []settings.Manga) *fyne.Container {
-	resultPanel := fyne.NewContainerWithLayout(layout.NewVBoxLayout())
-	for _, manga := range result {
-		m := manga
-		desc := widget.NewLabel(manga.Description)
-		desc.Wrapping = fyne.TextWrapWord
-		description := fyne.NewContainerWithLayout(layout.NewGridWrapLayout(fyne.NewSize(thWidth*5, thHeight)), container.NewScroll(desc))
-		panelDetail := fyne.NewContainerWithLayout(layout.NewVBoxLayout(),
-			fyne.NewContainerWithLayout(layout.NewHBoxLayout(),
-				widget.NewLabelWithStyle("Alternate name:", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
-				widget.NewLabelWithStyle(manga.AlternateName, fyne.TextAlignLeading, fyne.TextStyle{Italic: true}),
-			),
-			fyne.NewContainerWithLayout(layout.NewHBoxLayout(),
-				widget.NewLabelWithStyle("Year of release:", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
-				widget.NewLabelWithStyle(manga.YearOfRelease, fyne.TextAlignLeading, fyne.TextStyle{Italic: true}),
-			),
-			fyne.NewContainerWithLayout(layout.NewHBoxLayout(),
-				widget.NewLabelWithStyle("Author & Artist:", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
-				widget.NewLabelWithStyle(fmt.Sprintf("%s & %s", manga.Author, manga.Artist), fyne.TextAlignLeading, fyne.TextStyle{Italic: true}),
-			),
-			fyne.NewContainerWithLayout(layout.NewHBoxLayout(),
-				widget.NewLabelWithStyle("Status:", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
-				widget.NewLabelWithStyle(manga.Status, fyne.TextAlignLeading, fyne.TextStyle{Italic: true}),
-			),
-			description,
-			widget.NewButtonWithIcon("Add this to my collection!", theme.ContentAddIcon(), func() {
-				cnf := dialog.NewConfirm("Confirmation", fmt.Sprintf("Are you sure you want to\nadd \"%s\" to your collection?", m.Name), func(b bool) {
-					if !b {
-						return
-					}
-					settings.UpdateHistory(*globalConfig, m)
-					win.SetTitle("GoMangaReader - Update in progress...")
-					win.SetContent(fyne.NewContainerWithLayout(layout.NewGridWrapLayout(fyne.NewSize(400, 20)),
-						widget.NewLabelWithStyle("Please wait, refreshing your library...", fyne.TextAlignCenter, fyne.TextStyle{Bold: true, Italic: true}),
-						widget.NewProgressBarInfinite()),
-					)
-					updateLibrary(app, win, true)
-					dialog.ShowInformation("Information", fmt.Sprintf("The new serie \"%s\"\nis now part of your collection,\ncongratulations.", m.Name), w)
-					fyne.CurrentApp().SendNotification(&fyne.Notification{
-						Title:   "GoMangaReader",
-						Content: fmt.Sprintf("The new serie \"%s\" is now part of your library.\nCongratulations!", m.Name),
-					})
-				}, w)
-				cnf.SetDismissText("No, I changed my mind.")
-				cnf.SetConfirmText("Of course I want!")
-				cnf.Show()
-			}),
-		)
-		resultPanel.Add(widget.NewAccordion(widget.NewAccordionItem(manga.Name, panelDetail)))
+func NewSearch(app fyne.App, provider string) *Search {
+	ns := &Search{
+		BaseWidget:       widget.BaseWidget{},
+		Application:      app,
+		Provider:         provider,
+		Search:           "",
+		Results:          []settings.Manga{},
+		SearchInProgress: false,
 	}
-	return resultPanel
+	ns.ExtendBaseWidget(ns)
+	return ns
+}
+
+// MinSize returns the size that this widget should not shrink below
+func (s *Search) MinSize() fyne.Size {
+	s.ExtendBaseWidget(s)
+	return s.BaseWidget.MinSize()
+}
+
+func (s *Search) CreateRenderer() fyne.WidgetRenderer {
+	s.ExtendBaseWidget(s)
+
+	bg := canvas.NewRectangle(theme.ButtonColor())
+
+	searchEntry := widget.NewEntry()
+
+	searchForm := &widget.Form{
+		Items: []*widget.FormItem{
+			{Text: "What title do you search?", Widget: searchEntry},
+		},
+		OnSubmit: func() {
+			s.SearchInProgress = true
+			s.Search = searchEntry.Text
+			s.Refresh()
+		},
+		SubmitText: "Let's search for these titles!",
+	}
+
+	lblSearch := widget.NewLabel(fmt.Sprintf("Found %d results for search on '%s' with provider %s", len(s.Results), s.Search, s.Provider))
+	lblSearch.Wrapping = fyne.TextWrapWord
+
+	var results []*SearchItem
+
+	sr := &SearchRenderer{
+		bg:     bg,
+		entry:  searchEntry,
+		form:   searchForm,
+		label:  lblSearch,
+		items:  results,
+		layout: nil,
+		search: s,
+	}
+
+	return sr
+}
+
+type SearchRenderer struct {
+	bg          *canvas.Rectangle
+	entry       *widget.Entry
+	form        *widget.Form
+	label       *widget.Label
+	items       []*SearchItem
+	addSelected *widget.Button
+	layout      fyne.Layout
+	search      *Search
+}
+
+func (s *SearchRenderer) BackgroundColor() color.Color {
+	return theme.BackgroundColor()
+}
+
+func (s *SearchRenderer) Destroy() {
+	s.bg = nil
+	s.entry = nil
+	s.form = nil
+	s.label = nil
+	s.items = nil
+	s.layout = nil
+	s.search = nil
+}
+
+func (s *SearchRenderer) MinSize() fyne.Size {
+	height := globalConfig.Config.ThumbTextHeight + theme.Padding()*2
+	for _, i := range s.items {
+		height = height + i.Size().Height
+	}
+	return fyne.NewSize(globalConfig.Config.ThumbnailWidth*globalConfig.Config.NbColumns, height)
+}
+
+func (s *SearchRenderer) Layout(size fyne.Size) {
+	p := theme.Padding()
+	dx := p
+	dy := p
+
+	s.form.Resize(fyne.NewSize(globalConfig.Config.ThumbnailWidth*globalConfig.Config.NbColumns, globalConfig.Config.ThumbTextHeight*3))
+	s.form.Move(fyne.NewPos(dx, dy))
+	dy = dy + globalConfig.Config.ThumbTextHeight*4 + p
+
+	s.label.Resize(fyne.NewSize(globalConfig.Config.ThumbnailWidth*globalConfig.Config.NbColumns-p*2, globalConfig.Config.ThumbTextHeight))
+	s.label.Move(fyne.NewPos(dx, dy))
+	dy = dy + p + globalConfig.Config.ThumbTextHeight
+
+	for _, i := range s.items {
+		i.Resize(i.MinSize())
+		i.Move(fyne.NewPos(dx, dy))
+		dy = dy + p + globalConfig.Config.ThumbMiniHeight
+	}
+}
+
+func (s *SearchRenderer) Objects() []fyne.CanvasObject {
+	var objects []fyne.CanvasObject
+	objects = append(objects, s.bg)
+	objects = append(objects, s.form)
+	objects = append(objects, s.label)
+	for _, i := range s.items {
+		objects = append(objects, i)
+	}
+	return objects
+}
+
+func (s *SearchRenderer) Refresh() {
+	s.bg.Refresh()
+	if s.search.SearchInProgress == true {
+		s.search.SearchInProgress = false
+		s.label = widget.NewLabel(fmt.Sprintf("Searching for '%s' with provider %s", s.search.Search, s.search.Provider))
+		s.label.Wrapping = fyne.TextWrapWord
+		s.label.Refresh()
+		p := settings.MangaReader{}
+		if s.search.Search != "" {
+			s.search.Results = p.SearchManga(globalConfig.Config.LibraryPath, s.search.Search)
+			sort.Slice(s.search.Results, func(i, j int) bool {
+				return s.search.Results[i].Title < s.search.Results[j].Title
+			})
+		}
+		s.items = []*SearchItem{}
+		for _, r := range s.search.Results {
+			item := NewSearchItem(s.search.Application, r)
+			s.items = append(s.items, item)
+		}
+		s.label = widget.NewLabel(fmt.Sprintf("Found %d results for search on '%s' with provider %s", len(s.items), s.search.Search, s.search.Provider))
+		s.label.Wrapping = fyne.TextWrapWord
+	}
+	s.label.Refresh()
+	for _, i := range s.items {
+		i.Refresh()
+	}
 }

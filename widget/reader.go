@@ -25,11 +25,11 @@ func isMangaChapterExists(manga settings.Manga, chapter float64) bool {
 	return !info.IsDir()
 }
 
-func readChapter(app fyne.App, win fyne.Window, manga settings.Manga, chapter float64) {
+func readChapter(app fyne.App, manga settings.Manga, chapter float64) {
 	if isMangaChapterExists(manga, chapter) {
 		w := app.NewWindow(fmt.Sprintf("Read %s - chapter %.1f", manga.Name, chapter))
-		w.SetContent(container.NewScroll(widgetReader(app, w, manga, chapter)))
-		w.Resize(fyne.NewSize(pgWidth, pgHeight))
+		w.SetContent(container.NewScroll(widgetReader(app, manga, chapter)))
+		w.Resize(fyne.NewSize(globalConfig.Config.PageWidth, globalConfig.Config.PageHeight))
 		w.Show()
 		w.SetOnClosed(func() {
 			metadataPath := filepath.Dir(manga.CoverPath)
@@ -37,16 +37,16 @@ func readChapter(app fyne.App, win fyne.Window, manga settings.Manga, chapter fl
 			err := os.RemoveAll(tmpDir)
 			if err != nil {
 				msg := errors.New(fmt.Sprintf("Error when trying to remove temporary view folder: %s", err))
-				dialog.ShowError(msg, win)
+				dialog.ShowError(msg, nil)
 			}
 		})
 	} else {
 		err := errors.New(fmt.Sprintf("The chapter %03.1f for the \"%s\" does not exists on the file system, sorry we can't read it!", chapter, manga.Name))
-		dialog.ShowError(err, win)
+		dialog.ShowError(err, nil)
 	}
 }
 
-func widgetReader(app fyne.App, win fyne.Window, manga settings.Manga, chapter float64) *fyne.Container {
+func widgetReader(app fyne.App, manga settings.Manga, chapter float64) *fyne.Container {
 	app.Preferences().SetFloat(manga.Title, chapter)
 	metadataPath := filepath.Dir(manga.CoverPath)
 	tmpDir := filepath.FromSlash(fmt.Sprintf("%s/%s/viewer", metadataPath, manga.Title))
@@ -54,7 +54,7 @@ func widgetReader(app fyne.App, win fyne.Window, manga settings.Manga, chapter f
 	pages, err := archive.Unzip(cbzPath, tmpDir)
 	if err != nil {
 		msg := errors.New(fmt.Sprintf("Error when trying to unzip %s to temporary view folder %s: %s", cbzPath, tmpDir, err))
-		dialog.ShowError(msg, win)
+		dialog.ShowError(msg, nil)
 	}
 	pageNumber := app.Preferences().Int(fmt.Sprintf("%s/%.1f/page/", manga.Title, chapter))
 	if pageNumber <= 0 {
