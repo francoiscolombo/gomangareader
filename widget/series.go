@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"fyne.io/fyne"
 	"fyne.io/fyne/canvas"
+	"fyne.io/fyne/container"
 	"fyne.io/fyne/theme"
 	"fyne.io/fyne/widget"
 	"github.com/francoiscolombo/gomangareader/settings"
@@ -102,7 +103,7 @@ func (s *Series) CreateRenderer() fyne.WidgetRenderer {
 		author:         txtAuthor,
 		lavailability:  lAvailability,
 		availability:   txtAvailability,
-		description:    txtDescription,
+		description:    container.NewScroll(txtDescription),
 		bg:             bg,
 		layout:         nil,
 		series:         s,
@@ -125,7 +126,7 @@ type SeriesRenderer struct {
 	nbOfChapters   *canvas.Text
 	author         *canvas.Text
 	availability   *canvas.Text
-	description    *widget.Label
+	description    *container.Scroll
 	bg             *canvas.Rectangle
 	layout         fyne.Layout
 	series         *Series
@@ -157,12 +158,12 @@ func (s *SeriesRenderer) Destroy() {
 
 func (s *SeriesRenderer) Layout(size fyne.Size) {
 	p := theme.Padding()
-	ldx := (globalConfig.Config.ThumbnailWidth + p) * 2
-	dx := (globalConfig.Config.ThumbnailWidth + p) * 3
+	ldx := (config.Config.ThumbnailWidth + p) * 2
+	dx := (config.Config.ThumbnailWidth + p) * 3
 	dy := p
 	txtHeight := 20
 
-	s.cover.Resize(fyne.NewSize(globalConfig.Config.ThumbnailWidth*2, globalConfig.Config.ThumbnailHeight*2))
+	s.cover.Resize(fyne.NewSize(config.Config.ThumbnailWidth*2, config.Config.ThumbnailHeight*2))
 	s.cover.Move(fyne.NewPos(p, p))
 
 	s.lname.Move(fyne.NewPos(ldx, dy))
@@ -189,13 +190,13 @@ func (s *SeriesRenderer) Layout(size fyne.Size) {
 	s.availability.Move(fyne.NewPos(dx, dy))
 	dy = dy + txtHeight + p
 
-	s.description.Resize(fyne.NewSize(globalConfig.Config.ThumbnailWidth*4, globalConfig.Config.ThumbnailHeight))
+	s.description.Resize(fyne.NewSize(config.Config.ThumbnailWidth*4, config.Config.ThumbTextHeight*12))
 	s.description.Move(fyne.NewPos(ldx, dy))
 
 }
 
 func (s *SeriesRenderer) MinSize() fyne.Size {
-	return fyne.NewSize(globalConfig.Config.ThumbnailWidth*6+theme.Padding()*2, globalConfig.Config.ThumbnailHeight*2+theme.Padding()*2)
+	return fyne.NewSize(config.Config.ThumbnailWidth*6+theme.Padding()*2, config.Config.ThumbnailHeight*2+theme.Padding()*2)
 }
 
 func (s *SeriesRenderer) Objects() []fyne.CanvasObject {

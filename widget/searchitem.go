@@ -14,16 +14,14 @@ import (
 
 type SearchItem struct {
 	widget.BaseWidget
-	Application fyne.App
-	MangaFound  *settings.Manga
-	isSelected  bool
+	MangaFound *settings.Manga
+	isSelected bool
 }
 
-func NewSearchItem(app fyne.App, manga settings.Manga) *SearchItem {
+func NewSearchItem(manga settings.Manga) *SearchItem {
 	nsi := &SearchItem{
-		Application: app,
-		MangaFound:  &manga,
-		isSelected:  checkMangaAlreadyInLibrary(manga),
+		MangaFound: &manga,
+		isSelected: checkMangaAlreadyInLibrary(manga),
 	}
 	nsi.ExtendBaseWidget(nsi)
 	return nsi
@@ -46,43 +44,43 @@ func (si *SearchItem) Tapped(*fyne.PointEvent) {
 					si.isSelected = true
 					si.Refresh()
 					provider := settings.MangaReader{}
-					newManga := provider.FindDetails(globalConfig.Config.LibraryPath, si.MangaFound.Title, 0)
+					newManga := provider.FindDetails(config.Config.LibraryPath, si.MangaFound.Title, 0)
 					provider.BuildChaptersList(&newManga)
 					// download cover picture (if needed)
 					err1 := downloadCover(newManga)
 					if err1 == nil {
 						// and generate thumbnails (if needed)
-						err2 := extractFirstPages(globalConfig.Config.LibraryPath, newManga)
+						err2 := extractFirstPages(config.Config.LibraryPath, newManga)
 						if err2 == nil {
 							// update library
-							ws := NewTitleButton(si.Application, titles, newManga)
-							titles.Add(ws)
-							titles.Refresh()
+							ws := NewTitleButton(newManga)
+							library.Add(ws)
+							library.Refresh()
 							// and update history
-							globalConfig.History.Titles = append(globalConfig.History.Titles, newManga)
-							sort.Slice(globalConfig.History.Titles, func(i, j int) bool {
-								return globalConfig.History.Titles[i].Title < globalConfig.History.Titles[j].Title
+							config.History.Titles = append(config.History.Titles, newManga)
+							sort.Slice(config.History.Titles, func(i, j int) bool {
+								return config.History.Titles[i].Title < config.History.Titles[j].Title
 							})
 							// okay we have updated the metadata, now we can save the config
 							newSettings := settings.Settings{
 								Config: settings.Config{
-									LibraryPath:          globalConfig.Config.LibraryPath,
-									AutoUpdate:           globalConfig.Config.AutoUpdate,
-									NbColumns:            globalConfig.Config.NbColumns,
-									NbRows:               globalConfig.Config.NbRows,
-									PageWidth:            globalConfig.Config.PageWidth,
-									PageHeight:           globalConfig.Config.PageHeight,
-									ThumbMiniWidth:       globalConfig.Config.ThumbMiniWidth,
-									ThumbMiniHeight:      globalConfig.Config.ThumbMiniHeight,
-									LeftRightButtonWidth: globalConfig.Config.LeftRightButtonWidth,
-									ChapterLabelWidth:    globalConfig.Config.ChapterLabelWidth,
-									ThumbnailWidth:       globalConfig.Config.ThumbnailWidth,
-									ThumbnailHeight:      globalConfig.Config.ThumbnailHeight,
-									ThumbTextHeight:      globalConfig.Config.ThumbTextHeight,
-									NbWorkers:            globalConfig.Config.NbWorkers,
+									LibraryPath:          config.Config.LibraryPath,
+									AutoUpdate:           config.Config.AutoUpdate,
+									NbColumns:            config.Config.NbColumns,
+									NbRows:               config.Config.NbRows,
+									PageWidth:            config.Config.PageWidth,
+									PageHeight:           config.Config.PageHeight,
+									ThumbMiniWidth:       config.Config.ThumbMiniWidth,
+									ThumbMiniHeight:      config.Config.ThumbMiniHeight,
+									LeftRightButtonWidth: config.Config.LeftRightButtonWidth,
+									ChapterLabelWidth:    config.Config.ChapterLabelWidth,
+									ThumbnailWidth:       config.Config.ThumbnailWidth,
+									ThumbnailHeight:      config.Config.ThumbnailHeight,
+									ThumbTextHeight:      config.Config.ThumbTextHeight,
+									NbWorkers:            config.Config.NbWorkers,
 								},
 								History: settings.History{
-									Titles: globalConfig.History.Titles,
+									Titles: config.History.Titles,
 								},
 							}
 							settings.WriteSettings(newSettings)
@@ -174,30 +172,30 @@ func (s *SearchItemRender) Destroy() {
 }
 
 func (s *SearchItemRender) MinSize() fyne.Size {
-	return fyne.NewSize(globalConfig.Config.ThumbnailWidth*globalConfig.Config.NbColumns, globalConfig.Config.ThumbMiniHeight+theme.Padding()*2)
+	return fyne.NewSize(config.Config.ThumbnailWidth*config.Config.NbColumns, config.Config.ThumbMiniHeight+theme.Padding()*2)
 }
 
 func (s *SearchItemRender) Layout(size fyne.Size) {
 	p := theme.Padding()
 
-	s.lineUp.Resize(fyne.NewSize(globalConfig.Config.ThumbnailWidth*globalConfig.Config.NbColumns, 1))
+	s.lineUp.Resize(fyne.NewSize(config.Config.ThumbnailWidth*config.Config.NbColumns, 1))
 	s.lineUp.Move(fyne.NewPos(0, 1))
 
-	s.lineDown.Resize(fyne.NewSize(globalConfig.Config.ThumbnailWidth*globalConfig.Config.NbColumns, 1))
-	s.lineDown.Move(fyne.NewPos(0, globalConfig.Config.ThumbMiniHeight+p*2))
+	s.lineDown.Resize(fyne.NewSize(config.Config.ThumbnailWidth*config.Config.NbColumns, 1))
+	s.lineDown.Move(fyne.NewPos(0, config.Config.ThumbMiniHeight+p*2))
 
 	dx := p
 	dy := p
 
-	s.thumbnail.Resize(fyne.NewSize(globalConfig.Config.ThumbMiniWidth, globalConfig.Config.ThumbMiniHeight))
+	s.thumbnail.Resize(fyne.NewSize(config.Config.ThumbMiniWidth, config.Config.ThumbMiniHeight))
 	s.thumbnail.Move(fyne.NewPos(dx, dy))
-	dx = dx + p + globalConfig.Config.ThumbMiniWidth
+	dx = dx + p + config.Config.ThumbMiniWidth
 
-	s.title.Resize(fyne.NewSize(globalConfig.Config.ThumbnailWidth*globalConfig.Config.NbColumns-p-dx, globalConfig.Config.ThumbTextHeight))
+	s.title.Resize(fyne.NewSize(config.Config.ThumbnailWidth*config.Config.NbColumns-p-dx, config.Config.ThumbTextHeight))
 	s.title.Move(fyne.NewPos(dx, dy))
-	dy = dy + globalConfig.Config.ThumbTextHeight + p
+	dy = dy + config.Config.ThumbTextHeight + p
 
-	s.description.Resize(fyne.NewSize(globalConfig.Config.ThumbnailWidth*globalConfig.Config.NbColumns-p-dx, globalConfig.Config.ThumbMiniHeight))
+	s.description.Resize(fyne.NewSize(config.Config.ThumbnailWidth*config.Config.NbColumns-p-dx, config.Config.ThumbMiniHeight))
 	s.description.Move(fyne.NewPos(dx, dy))
 
 }
@@ -223,7 +221,7 @@ func (s *SearchItemRender) Refresh() {
 }
 
 func checkMangaAlreadyInLibrary(manga settings.Manga) bool {
-	for _, m := range globalConfig.History.Titles {
+	for _, m := range config.History.Titles {
 		if m.Title == manga.Title {
 			return true
 		}

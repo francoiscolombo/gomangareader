@@ -20,20 +20,18 @@ import (
 
 type Downloader struct {
 	widget.BaseWidget
-	Application     fyne.App
 	SelectedManga   *settings.Manga
 	DownloadChapter int
 	CurrentPage     int
 	TotalPages      int
 }
 
-func NewDownloader(app fyne.App, manga *settings.Manga, chapter int) *Downloader {
+func NewDownloader(manga *settings.Manga, chapter int) *Downloader {
 	d := &Downloader{
-		Application:     app,
 		SelectedManga:   manga,
 		DownloadChapter: chapter,
 		CurrentPage:     0,
-		TotalPages:      0,
+		TotalPages:      1,
 	}
 	d.ExtendBaseWidget(d)
 	return d
@@ -99,7 +97,7 @@ func (d *Downloader) ChapterDownloader() {
 			d.CurrentPage = 0
 			d.TotalPages = len(imageLinks)
 			for {
-				nbJobs := globalConfig.Config.NbWorkers
+				nbJobs := config.Config.NbWorkers
 				if (d.CurrentPage + nbJobs) > d.TotalPages {
 					nbJobs = d.TotalPages - d.CurrentPage
 				}
@@ -156,20 +154,25 @@ func (d *Downloader) ChapterDownloader() {
 			}
 			if lastChapterIndex >= 0 {
 				d.SelectedManga.LastChapter = d.SelectedManga.Chapters[lastChapterIndex]
-				*globalConfig = settings.UpdateHistory(*globalConfig, *d.SelectedManga)
+				*config = settings.UpdateHistory(*config, *d.SelectedManga)
 				if d.SelectedManga.LastChapter <= provider.CheckLastChapter(*d.SelectedManga) {
 					d.CurrentPage = 0
 					d.TotalPages = 1
 					d.DownloadChapter = lastChapterIndex
 					d.Refresh()
 				}
-				err = extractFirstPages(globalConfig.Config.LibraryPath, *d.SelectedManga)
+				err = extractFirstPages(config.Config.LibraryPath, *d.SelectedManga)
 				if err != nil {
 					log.Printf("Error happened while extracting first page for %s\n%s", d.SelectedManga.Name, err)
 				}
+				chapters.Refresh()
 			}
 		}
 	}
+	// this is not working, avoid to download the last chapter... dunno why, so for now commented.
+	//if d.SelectedManga.LastChapter > provider.CheckLastChapter(*d.SelectedManga) {
+	//	refreshTabsContent(d.SelectedManga, 1)
+	//}
 }
 
 type DownloaderRenderer struct {
@@ -199,7 +202,7 @@ func (d *DownloaderRenderer) Destroy() {
 }
 
 func (d *DownloaderRenderer) MinSize() fyne.Size {
-	return fyne.NewSize(globalConfig.Config.ThumbnailWidth*6+theme.Padding()*2, globalConfig.Config.ThumbMiniHeight+theme.Padding()*2)
+	return fyne.NewSize(config.Config.ThumbnailWidth*6+theme.Padding()*2, config.Config.ThumbMiniHeight+theme.Padding()*2)
 }
 
 func (d *DownloaderRenderer) Objects() []fyne.CanvasObject {
@@ -219,22 +222,22 @@ func (d *DownloaderRenderer) Layout(size fyne.Size) {
 	dy := p
 	txtHeight := 20
 
-	d.page.Resize(fyne.NewSize(globalConfig.Config.ThumbMiniWidth, globalConfig.Config.ThumbMiniHeight))
+	d.page.Resize(fyne.NewSize(config.Config.ThumbMiniWidth, config.Config.ThumbMiniHeight))
 	d.page.Move(fyne.NewPos(dx, dy))
-	dx = dx + globalConfig.Config.ThumbMiniWidth + p
+	dx = dx + config.Config.ThumbMiniWidth + p
 
-	d.download.Resize(fyne.NewSize(200, globalConfig.Config.ThumbMiniHeight/2-p))
-	d.download.Move(fyne.NewPos(globalConfig.Config.ThumbnailWidth*6-200-p, dy))
+	d.download.Resize(fyne.NewSize(200, config.Config.ThumbMiniHeight/2-p))
+	d.download.Move(fyne.NewPos(config.Config.ThumbnailWidth*6-200-p, dy))
 
-	d.label.Resize(fyne.NewSize(globalConfig.Config.ThumbnailWidth*5-200, txtHeight))
+	d.label.Resize(fyne.NewSize(config.Config.ThumbnailWidth*5-200, txtHeight))
 	d.label.Move(fyne.NewPos(dx, dy))
 	dy = dy + txtHeight + p
 
-	d.progress.Resize(fyne.NewSize(globalConfig.Config.ThumbnailWidth*5-200, txtHeight))
+	d.progress.Resize(fyne.NewSize(config.Config.ThumbnailWidth*5-200, txtHeight))
 	d.progress.Move(fyne.NewPos(dx, dy))
 	dy = dy + txtHeight + p
 
-	d.description.Resize(fyne.NewSize(globalConfig.Config.ThumbnailWidth*5, txtHeight*2))
+	d.description.Resize(fyne.NewSize(config.Config.ThumbnailWidth*5, txtHeight*2))
 	d.description.Move(fyne.NewPos(dx, dy))
 }
 

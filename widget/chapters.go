@@ -13,7 +13,6 @@ import (
 
 type Chapters struct {
 	widget.BaseWidget
-	Application         fyne.App
 	Manga               *settings.Manga
 	Title               string
 	ThumbnailPath       string
@@ -21,9 +20,9 @@ type Chapters struct {
 	CurrentChapterIndex int
 }
 
-func NewChapters(app fyne.App, manga *settings.Manga) *Chapters {
+func NewChapters(manga *settings.Manga) *Chapters {
 	var chaps []string
-	currentChapterIndex := app.Preferences().Int(manga.Title)
+	currentChapterIndex := application.Preferences().Int(manga.Title)
 	if len(manga.Chapters) == 0 {
 		currentChapterIndex = 0
 	}
@@ -32,7 +31,6 @@ func NewChapters(app fyne.App, manga *settings.Manga) *Chapters {
 	}
 	thumbnailPath := filepath.Dir(manga.CoverPath)
 	nc := &Chapters{
-		Application:         app,
 		Manga:               manga,
 		Title:               manga.Title,
 		ThumbnailPath:       thumbnailPath,
@@ -79,7 +77,10 @@ func (c *Chapters) CreateRenderer() fyne.WidgetRenderer {
 	})
 
 	readThis := widget.NewButtonWithIcon("Read this chapter...", theme.DocumentIcon(), func() {
-		readChapter(c.Application, *c.Manga, c.Manga.Chapters[c.CurrentChapterIndex])
+		reader = NewReader(c.Manga, c.Manga.Chapters[c.CurrentChapterIndex])
+		reader.Refresh()
+		refreshTabsContent(c.Manga, 2)
+		//readChapter(application, *c.Manga, c.Manga.Chapters[c.CurrentChapterIndex])
 	})
 
 	cr := &ChaptersRenderer{
@@ -122,7 +123,7 @@ func (c *ChaptersRenderer) Destroy() {
 }
 
 func (c *ChaptersRenderer) MinSize() fyne.Size {
-	return fyne.NewSize(globalConfig.Config.ThumbMiniWidth+globalConfig.Config.LeftRightButtonWidth*2+globalConfig.Config.ChapterLabelWidth+theme.Padding()*7+200, globalConfig.Config.ThumbMiniHeight+theme.Padding()*2)
+	return fyne.NewSize(config.Config.ThumbMiniWidth+config.Config.LeftRightButtonWidth*2+config.Config.ChapterLabelWidth+theme.Padding()*7+200, config.Config.ThumbMiniHeight+theme.Padding()*2)
 }
 
 func (c *ChaptersRenderer) Layout(size fyne.Size) {
@@ -130,25 +131,25 @@ func (c *ChaptersRenderer) Layout(size fyne.Size) {
 	dx := p
 	dy := p
 
-	c.previous.Resize(fyne.NewSize(globalConfig.Config.LeftRightButtonWidth, globalConfig.Config.ThumbMiniHeight))
+	c.previous.Resize(fyne.NewSize(config.Config.LeftRightButtonWidth, config.Config.ThumbMiniHeight))
 	c.previous.Move(fyne.NewPos(dx, dy))
-	dx = dx + globalConfig.Config.LeftRightButtonWidth + p
+	dx = dx + config.Config.LeftRightButtonWidth + p
 
-	c.thumbnail.Resize(fyne.NewSize(globalConfig.Config.ThumbMiniWidth, globalConfig.Config.ThumbMiniHeight))
+	c.thumbnail.Resize(fyne.NewSize(config.Config.ThumbMiniWidth, config.Config.ThumbMiniHeight))
 	c.thumbnail.Move(fyne.NewPos(dx, dy))
-	dx = dx + globalConfig.Config.ThumbMiniWidth + p
+	dx = dx + config.Config.ThumbMiniWidth + p
 
-	c.next.Resize(fyne.NewSize(globalConfig.Config.LeftRightButtonWidth, globalConfig.Config.ThumbMiniHeight))
+	c.next.Resize(fyne.NewSize(config.Config.LeftRightButtonWidth, config.Config.ThumbMiniHeight))
 	c.next.Move(fyne.NewPos(dx, dy))
-	dx = dx + globalConfig.Config.LeftRightButtonWidth + p
+	dx = dx + config.Config.LeftRightButtonWidth + p
 
-	c.chapter.Resize(fyne.NewSize(globalConfig.Config.ChapterLabelWidth, globalConfig.Config.ThumbMiniHeight))
+	c.chapter.Resize(fyne.NewSize(config.Config.ChapterLabelWidth, config.Config.ThumbMiniHeight))
 	c.chapter.Move(fyne.NewPos(dx, dy))
-	dx = dx + globalConfig.Config.ChapterLabelWidth + p
+	dx = dx + config.Config.ChapterLabelWidth + p
 
-	c.readThis.Resize(fyne.NewSize(200, globalConfig.Config.ThumbMiniHeight/2-p))
+	c.readThis.Resize(fyne.NewSize(200, config.Config.ThumbMiniHeight/2-p))
 	c.readThis.Move(fyne.NewPos(dx, dy))
-	dy = dy + globalConfig.Config.ThumbMiniHeight/2 + p
+	dy = dy + config.Config.ThumbMiniHeight/2 + p
 
 }
 

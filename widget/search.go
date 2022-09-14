@@ -13,17 +13,15 @@ import (
 
 type Search struct {
 	widget.BaseWidget
-	Application      fyne.App
 	Provider         string
 	Search           string
 	Results          []settings.Manga
 	SearchInProgress bool
 }
 
-func NewSearch(app fyne.App, provider string) *Search {
+func NewSearch(provider string) *Search {
 	ns := &Search{
 		BaseWidget:       widget.BaseWidget{},
-		Application:      app,
 		Provider:         provider,
 		Search:           "",
 		Results:          []settings.Manga{},
@@ -102,11 +100,11 @@ func (s *SearchRenderer) Destroy() {
 }
 
 func (s *SearchRenderer) MinSize() fyne.Size {
-	height := globalConfig.Config.ThumbTextHeight + theme.Padding()*2
+	height := config.Config.ThumbTextHeight + theme.Padding()*2
 	for _, i := range s.items {
 		height = height + i.Size().Height
 	}
-	return fyne.NewSize(globalConfig.Config.ThumbnailWidth*globalConfig.Config.NbColumns, height)
+	return fyne.NewSize(config.Config.ThumbnailWidth*config.Config.NbColumns, height)
 }
 
 func (s *SearchRenderer) Layout(size fyne.Size) {
@@ -114,18 +112,18 @@ func (s *SearchRenderer) Layout(size fyne.Size) {
 	dx := p
 	dy := p
 
-	s.form.Resize(fyne.NewSize(globalConfig.Config.ThumbnailWidth*globalConfig.Config.NbColumns, globalConfig.Config.ThumbTextHeight*3))
+	s.form.Resize(fyne.NewSize(config.Config.ThumbnailWidth*config.Config.NbColumns, config.Config.ThumbTextHeight*3))
 	s.form.Move(fyne.NewPos(dx, dy))
-	dy = dy + globalConfig.Config.ThumbTextHeight*4 + p
+	dy = dy + config.Config.ThumbTextHeight*4 + p
 
-	s.label.Resize(fyne.NewSize(globalConfig.Config.ThumbnailWidth*globalConfig.Config.NbColumns-p*2, globalConfig.Config.ThumbTextHeight))
+	s.label.Resize(fyne.NewSize(config.Config.ThumbnailWidth*config.Config.NbColumns-p*2, config.Config.ThumbTextHeight))
 	s.label.Move(fyne.NewPos(dx, dy))
-	dy = dy + p + globalConfig.Config.ThumbTextHeight
+	dy = dy + p + config.Config.ThumbTextHeight
 
 	for _, i := range s.items {
 		i.Resize(i.MinSize())
 		i.Move(fyne.NewPos(dx, dy))
-		dy = dy + p + globalConfig.Config.ThumbMiniHeight
+		dy = dy + p + config.Config.ThumbMiniHeight
 	}
 }
 
@@ -149,14 +147,14 @@ func (s *SearchRenderer) Refresh() {
 		s.label.Refresh()
 		p := settings.MangaReader{}
 		if s.search.Search != "" {
-			s.search.Results = p.SearchManga(globalConfig.Config.LibraryPath, s.search.Search)
+			s.search.Results = p.SearchManga(config.Config.LibraryPath, s.search.Search)
 			sort.Slice(s.search.Results, func(i, j int) bool {
 				return s.search.Results[i].Title < s.search.Results[j].Title
 			})
 		}
 		s.items = []*SearchItem{}
 		for _, r := range s.search.Results {
-			item := NewSearchItem(s.search.Application, r)
+			item := NewSearchItem(r)
 			s.items = append(s.items, item)
 		}
 		s.label = widget.NewLabel(fmt.Sprintf("Found %d results for search on '%s' with provider %s", len(s.items), s.search.Search, s.search.Provider))

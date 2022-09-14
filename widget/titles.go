@@ -24,38 +24,29 @@ func getLastChapterIndex(manga settings.Manga) int {
 
 type Titles struct {
 	widget.BaseWidget
-	Library    fyne.App
-	Items      []*TitleButton
-	Manga      *settings.Manga
-	Series     *Series
-	Chapters   *Chapters
-	Downloader *Downloader
+	Items []*TitleButton
+	Manga *settings.Manga
 }
 
 // NewTitlesContainer create a new titles container
-func NewTitlesContainer(library fyne.App, items ...*TitleButton) *Titles {
+func NewTitlesContainer(items ...*TitleButton) *Titles {
 	var t *Titles
 	if items == nil {
 		t = &Titles{
 			BaseWidget: widget.BaseWidget{},
-			Library:    library,
 			Items:      nil,
 			Manga:      nil,
-			Series:     nil,
-			Chapters:   nil,
-			Downloader: nil,
 		}
 	} else {
 		t = &Titles{
 			BaseWidget: widget.BaseWidget{},
-			Library:    library,
 			Items:      items,
 			Manga:      items[0].Title,
-			Series:     NewSeries(items[0].Title),
-			Chapters:   NewChapters(library, items[0].Title),
-			Downloader: NewDownloader(library, items[0].Title, getLastChapterIndex(*items[0].Title)),
 		}
 		t.Items[0].Selected = true
+		series = NewSeries(items[0].Title)
+		chapters = NewChapters(items[0].Title)
+		downloader = NewDownloader(items[0].Title, getLastChapterIndex(*items[0].Title))
 	}
 	t.ExtendBaseWidget(t)
 	return t
@@ -63,15 +54,15 @@ func NewTitlesContainer(library fyne.App, items ...*TitleButton) *Titles {
 
 // Add adds the given item to this container
 func (t *Titles) Add(item *TitleButton) {
-	if t.Series == nil {
+	if series == nil {
 		item.Selected = true
-		t.Series = NewSeries(item.Title)
+		series = NewSeries(item.Title)
 	}
-	if t.Chapters == nil {
-		t.Chapters = NewChapters(t.Library, item.Title)
+	if chapters == nil {
+		chapters = NewChapters(item.Title)
 	}
-	if t.Downloader == nil {
-		t.Downloader = NewDownloader(t.Library, item.Title, getLastChapterIndex(*item.Title))
+	if downloader == nil {
+		downloader = NewDownloader(item.Title, getLastChapterIndex(*item.Title))
 	}
 	t.Items = append(t.Items, item)
 	sort.Slice(t.Items, func(i, j int) bool {
@@ -85,7 +76,7 @@ func (t *Titles) CreateRenderer() fyne.WidgetRenderer {
 	bg := canvas.NewRectangle(theme.ButtonColor())
 	r := &TitlesRenderer{
 		bg:        bg,
-		layout:    layout.NewGridLayout(globalConfig.Config.NbColumns),
+		layout:    layout.NewGridLayout(config.Config.NbColumns),
 		container: t,
 	}
 	return r
@@ -133,7 +124,7 @@ func (t *TitlesRenderer) Destroy() {
 
 func (t *TitlesRenderer) MinSize() fyne.Size {
 	nbRows := (len(t.container.Items) / 6) + 1
-	return fyne.NewSize(globalConfig.Config.ThumbnailWidth*globalConfig.Config.NbColumns, (globalConfig.Config.ThumbnailHeight+globalConfig.Config.ThumbTextHeight)*nbRows+40)
+	return fyne.NewSize(config.Config.ThumbnailWidth*config.Config.NbColumns, (config.Config.ThumbnailHeight+config.Config.ThumbTextHeight)*nbRows+40)
 }
 
 func (t *TitlesRenderer) Objects() []fyne.CanvasObject {
@@ -156,9 +147,6 @@ func (t *TitlesRenderer) Refresh() {
 		tb.Refresh()
 		if tb.Selected == true {
 			t.container.Manga = tb.Title
-			t.container.Series = NewSeries(tb.Title)
-			t.container.Chapters = NewChapters(tb.Library, tb.Title)
-			t.container.Downloader = NewDownloader(tb.Library, tb.Title, getLastChapterIndex(*tb.Title))
 		}
 	}
 	t.bg.Refresh()
