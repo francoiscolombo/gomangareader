@@ -151,13 +151,13 @@ func (r *ReaderRenderer) Layout(size fyne.Size) {
 	r.page.Move(fyne.NewPos(dx, dy))
 	dy = dy + libraryTabs.Size().Height - p*2 - r.previous.MinSize().Height*2
 
+	//r.displayPage.Resize(r.displayPage.MinSize())
+	//r.displayPage.Move(fyne.NewPos(dx, dy))
+	//dx = dx + p + r.displayPage.MinSize().Width
+
 	r.previous.Resize(r.previous.MinSize())
 	r.previous.Move(fyne.NewPos(dx, dy))
 	dx = dx + p + r.previous.MinSize().Width
-
-	r.displayPage.Resize(r.displayPage.MinSize())
-	r.displayPage.Move(fyne.NewPos(dx, dy))
-	dx = dx + p + r.displayPage.MinSize().Width
 
 	r.next.Resize(r.next.MinSize())
 	r.next.Move(fyne.NewPos(dx, dy))
@@ -172,15 +172,15 @@ func (r *ReaderRenderer) Objects() []fyne.CanvasObject {
 	objects = append(objects, r.bg)
 	objects = append(objects, r.page)
 	objects = append(objects, r.previous)
-	objects = append(objects, r.displayPage)
+	//objects = append(objects, r.displayPage)
 	objects = append(objects, r.next)
 	objects = append(objects, r.pageProgress)
 	return objects
 }
 
 func (r *ReaderRenderer) Refresh() {
-	r.displayPage = canvas.NewText(fmt.Sprintf("Page %d / %d", r.reader.PageNumber, r.reader.NbPages), theme.TextColor())
-	r.displayPage.Refresh()
+	//r.displayPage = canvas.NewText(fmt.Sprintf("Page %d / %d", r.reader.PageNumber, r.reader.NbPages), theme.TextColor())
+	//r.displayPage.Refresh()
 
 	r.pageProgress.SetValue(float64(r.reader.PageNumber) / float64(r.reader.NbPages))
 	r.pageProgress.Refresh()

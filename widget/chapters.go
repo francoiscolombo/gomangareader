@@ -80,7 +80,6 @@ func (c *Chapters) CreateRenderer() fyne.WidgetRenderer {
 		reader = NewReader(c.Manga, c.Manga.Chapters[c.CurrentChapterIndex])
 		reader.Refresh()
 		refreshTabsContent(c.Manga, 2)
-		//readChapter(application, *c.Manga, c.Manga.Chapters[c.CurrentChapterIndex])
 	})
 
 	cr := &ChaptersRenderer{
