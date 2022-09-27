@@ -24,6 +24,7 @@ type Downloader struct {
 	DownloadChapter int
 	CurrentPage     int
 	TotalPages      int
+	Successful      bool
 }
 
 func NewDownloader(manga *settings.Manga, chapter int) *Downloader {
@@ -32,6 +33,7 @@ func NewDownloader(manga *settings.Manga, chapter int) *Downloader {
 		DownloadChapter: chapter,
 		CurrentPage:     0,
 		TotalPages:      1,
+		Successful:      true,
 	}
 	d.ExtendBaseWidget(d)
 	return d
@@ -130,6 +132,7 @@ func (d *Downloader) ChapterDownloader() {
 				}()
 				for res := range results {
 					if res.error != nil {
+						d.Successful = false
 						log.Printf("Status code %d when downloading page %d from url:\n%s\nthe error is: %s", res.statusCode, d.CurrentPage, res.url, res.error)
 						break
 					}
@@ -142,6 +145,7 @@ func (d *Downloader) ChapterDownloader() {
 			err = createCBZ(d.SelectedManga.Path, tempDirectory, d.SelectedManga.Title, d.SelectedManga.LastChapter)
 			if err != nil {
 				log.Printf("Error when trying to create chapter %03.1f of %s from %s\nthe error is: %s", d.SelectedManga.LastChapter, d.SelectedManga.Title, tempDirectory, err)
+				d.Successful = false
 				return
 			}
 			// update history
@@ -164,10 +168,18 @@ func (d *Downloader) ChapterDownloader() {
 				err = extractFirstPages(config.Config.LibraryPath, *d.SelectedManga)
 				if err != nil {
 					log.Printf("Error happened while extracting first page for %s\n%s", d.SelectedManga.Name, err)
+					d.Successful = false
 				}
 				chapters.Refresh()
+			} else {
+				d.Successful = false
 			}
 		}
+	}
+	if d.Successful == true {
+		d.ChapterDownloader()
+	} else {
+		refreshTabsContent(d.SelectedManga, 1)
 	}
 	// this is not working, avoid to download the last chapter... dunno why, so for now commented.
 	//if d.SelectedManga.LastChapter > provider.CheckLastChapter(*d.SelectedManga) {
