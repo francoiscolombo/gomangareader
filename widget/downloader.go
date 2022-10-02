@@ -177,6 +177,7 @@ func (d *Downloader) ChapterDownloader() {
 		}
 	}
 	if d.Successful == true {
+		time.Sleep(5 * time.Second)
 		d.ChapterDownloader()
 	} else {
 		refreshTabsContent(d.SelectedManga, 1)
