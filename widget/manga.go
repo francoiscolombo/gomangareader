@@ -37,7 +37,7 @@ func NewReader(manga *settings.Manga, chapter float64) *Reader {
 		msg := errors.New(fmt.Sprintf("Error when trying to unzip %s to temporary view folder %s: %s", cbzPath, tmpDir, err))
 		dialog.ShowError(msg, mainWindow)
 	}
-	pageNumber := application.Preferences().Int(fmt.Sprintf("%s/%.1f/page/", manga.Title, chapter))
+	pageNumber := application.Preferences().Int(fmt.Sprintf("%s/%.1f/currentpage", manga.Title, chapter))
 	if pageNumber <= 0 {
 		pageNumber = 1
 	}
@@ -82,6 +82,7 @@ func (r *Reader) CreateRenderer() fyne.WidgetRenderer {
 			r.PageNumber = 1
 		}
 		r.Refresh()
+		application.Preferences().SetInt(fmt.Sprintf("%s/%.1f/currentpage", r.Manga.Title, r.Chapter), r.PageNumber)
 	})
 
 	next := widget.NewButtonWithIcon("[Next]", theme.MediaFastForwardIcon(), func() {
@@ -90,6 +91,7 @@ func (r *Reader) CreateRenderer() fyne.WidgetRenderer {
 			r.PageNumber = r.NbPages
 		}
 		r.Refresh()
+		application.Preferences().SetInt(fmt.Sprintf("%s/%.1f/currentpage", r.Manga.Title, r.Chapter), r.PageNumber)
 	})
 
 	rr := &ReaderRenderer{

@@ -79,6 +79,7 @@ func (c *Chapters) CreateRenderer() fyne.WidgetRenderer {
 	readThis := widget.NewButtonWithIcon("Read this chapter...", theme.DocumentIcon(), func() {
 		reader = NewReader(c.Manga, c.Manga.Chapters[c.CurrentChapterIndex])
 		reader.Refresh()
+		application.Preferences().SetInt(c.Manga.Title, c.CurrentChapterIndex)
 		refreshTabsContent(c.Manga, 2)
 	})
 
