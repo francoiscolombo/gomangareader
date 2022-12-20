@@ -2,11 +2,11 @@ package widget
 
 import (
 	"fmt"
-	"fyne.io/fyne"
-	"fyne.io/fyne/canvas"
-	"fyne.io/fyne/container"
-	"fyne.io/fyne/theme"
-	"fyne.io/fyne/widget"
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/canvas"
+	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/theme"
+	"fyne.io/fyne/v2/widget"
 	"github.com/francoiscolombo/gomangareader/settings"
 	"image/color"
 )
@@ -157,11 +157,12 @@ func (s *SeriesRenderer) Destroy() {
 }
 
 func (s *SeriesRenderer) Layout(size fyne.Size) {
+	var txtHeight float32
 	p := theme.Padding()
 	ldx := (config.Config.ThumbnailWidth + p) * 2
 	dx := (config.Config.ThumbnailWidth + p) * 3
 	dy := p
-	txtHeight := 20
+	txtHeight = 20.0
 
 	s.cover.Resize(fyne.NewSize(config.Config.ThumbnailWidth*2, config.Config.ThumbnailHeight*2))
 	s.cover.Move(fyne.NewPos(p, p))

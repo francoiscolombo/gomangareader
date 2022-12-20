@@ -3,7 +3,7 @@ module github.com/francoiscolombo/gomangareader/settings
 go 1.18
 
 require (
-	fyne.io/fyne v1.4.3
+	fyne.io/fyne/v2 v2.2.4 // indirect
 	github.com/PuerkitoBio/goquery v1.8.0
 )
 

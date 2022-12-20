@@ -2,10 +2,10 @@ package widget
 
 import (
 	"fmt"
-	"fyne.io/fyne"
-	"fyne.io/fyne/canvas"
-	"fyne.io/fyne/theme"
-	"fyne.io/fyne/widget"
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/canvas"
+	"fyne.io/fyne/v2/theme"
+	"fyne.io/fyne/v2/widget"
 	"github.com/francoiscolombo/gomangareader/settings"
 	"image/color"
 	"io"
@@ -230,10 +230,11 @@ func (d *DownloaderRenderer) Objects() []fyne.CanvasObject {
 }
 
 func (d *DownloaderRenderer) Layout(size fyne.Size) {
+	var txtHeight float32
 	p := theme.Padding()
 	dx := p
 	dy := p
-	txtHeight := 20
+	txtHeight = 20.0
 
 	d.page.Resize(fyne.NewSize(config.Config.ThumbMiniWidth, config.Config.ThumbMiniHeight))
 	d.page.Move(fyne.NewPos(dx, dy))

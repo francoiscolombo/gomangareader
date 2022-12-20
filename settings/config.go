@@ -8,20 +8,20 @@ type Settings struct {
 
 // Config only store the default configuration, like output path and the global update library flag
 type Config struct {
-	LibraryPath          string `json:"library_path"`
-	AutoUpdate           bool   `json:"auto_update"`
-	NbColumns            int    `json:"nb_columns"`
-	NbRows               int    `json:"nb_rows"`
-	PageWidth            int    `json:"page_width"`
-	PageHeight           int    `json:"page_height"`
-	ThumbMiniWidth       int    `json:"thumb_mini_width"`
-	ThumbMiniHeight      int    `json:"thumb_mini_height"`
-	LeftRightButtonWidth int    `json:"left_right_button_width"`
-	ChapterLabelWidth    int    `json:"chapter_label_width"`
-	ThumbnailWidth       int    `json:"thumbnail_width"`
-	ThumbnailHeight      int    `json:"thumbnail_height"`
-	ThumbTextHeight      int    `json:"thumb_text_height"`
-	NbWorkers            int    `json:"nb_workers"`
+	LibraryPath          string  `json:"library_path"`
+	AutoUpdate           bool    `json:"auto_update"`
+	NbColumns            float32 `json:"nb_columns"`
+	NbRows               float32 `json:"nb_rows"`
+	PageWidth            float32 `json:"page_width"`
+	PageHeight           float32 `json:"page_height"`
+	ThumbMiniWidth       float32 `json:"thumb_mini_width"`
+	ThumbMiniHeight      float32 `json:"thumb_mini_height"`
+	LeftRightButtonWidth float32 `json:"left_right_button_width"`
+	ChapterLabelWidth    float32 `json:"chapter_label_width"`
+	ThumbnailWidth       float32 `json:"thumbnail_width"`
+	ThumbnailHeight      float32 `json:"thumbnail_height"`
+	ThumbTextHeight      float32 `json:"thumb_text_height"`
+	NbWorkers            int     `json:"nb_workers"`
 }
 
 // History is the manga download history, so it's an array of all the mangas downloaded

@@ -1,11 +1,11 @@
 package widget
 
 import (
-	"fyne.io/fyne"
-	"fyne.io/fyne/canvas"
-	"fyne.io/fyne/layout"
-	"fyne.io/fyne/theme"
-	"fyne.io/fyne/widget"
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/canvas"
+	"fyne.io/fyne/v2/layout"
+	"fyne.io/fyne/v2/theme"
+	"fyne.io/fyne/v2/widget"
 	"github.com/francoiscolombo/gomangareader/settings"
 	"image/color"
 	"sort"
@@ -76,7 +76,7 @@ func (t *Titles) CreateRenderer() fyne.WidgetRenderer {
 	bg := canvas.NewRectangle(theme.ButtonColor())
 	r := &TitlesRenderer{
 		bg:        bg,
-		layout:    layout.NewGridLayout(config.Config.NbColumns),
+		layout:    layout.NewGridLayout(int(config.Config.NbColumns)),
 		container: t,
 	}
 	return r
@@ -123,7 +123,8 @@ func (t *TitlesRenderer) Destroy() {
 }
 
 func (t *TitlesRenderer) MinSize() fyne.Size {
-	nbRows := (len(t.container.Items) / 6) + 1
+	var nbRows float32
+	nbRows = float32((len(t.container.Items) / 6) + 1)
 	return fyne.NewSize(config.Config.ThumbnailWidth*config.Config.NbColumns, (config.Config.ThumbnailHeight+config.Config.ThumbTextHeight)*nbRows+40)
 }
 
