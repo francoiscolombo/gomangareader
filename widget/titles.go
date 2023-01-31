@@ -136,7 +136,7 @@ func (t *TitlesRenderer) Objects() []fyne.CanvasObject {
 	return objects
 }
 
-func (t *TitlesRenderer) Layout(size fyne.Size) {
+func (t *TitlesRenderer) Layout(_ fyne.Size) {
 	t.bg.Resize(t.MinSize())
 	objects := t.Objects()
 	min := t.layout.MinSize(objects)

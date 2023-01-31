@@ -39,45 +39,45 @@ func (s *Series) CreateRenderer() fyne.WidgetRenderer {
 		cover.FillMode = canvas.ImageFillContain
 	}
 
-	lName := canvas.NewText("Name:", theme.TextColor())
-	lName.TextSize = 14
+	lName := canvas.NewText("Name:", theme.ForegroundColor())
+	lName.TextSize = 12
 
-	lAlternateName := canvas.NewText("Alternate Name:", theme.TextColor())
-	lAlternateName.TextSize = 14
+	lAlternateName := canvas.NewText("Alternate Name:", theme.ForegroundColor())
+	lAlternateName.TextSize = 12
 
-	lStatus := canvas.NewText("Status:", theme.TextColor())
-	lStatus.TextSize = 14
+	lStatus := canvas.NewText("Status:", theme.ForegroundColor())
+	lStatus.TextSize = 12
 
-	lNbOfChapters := canvas.NewText("Nb of chapters:", theme.TextColor())
-	lNbOfChapters.TextSize = 14
+	lNbOfChapters := canvas.NewText("Nb of chapters:", theme.ForegroundColor())
+	lNbOfChapters.TextSize = 12
 
-	lAuthor := canvas.NewText("Author:", theme.TextColor())
-	lAuthor.TextSize = 14
+	lAuthor := canvas.NewText("Author:", theme.ForegroundColor())
+	lAuthor.TextSize = 12
 
-	lAvailability := canvas.NewText("Availability:", theme.TextColor())
-	lAvailability.TextSize = 14
+	lAvailability := canvas.NewText("Availability:", theme.ForegroundColor())
+	lAvailability.TextSize = 12
 
-	txtName := canvas.NewText(s.SelectedManga.Name, theme.TextColor())
-	txtName.TextSize = 14
+	txtName := canvas.NewText(s.SelectedManga.Name, theme.ForegroundColor())
+	txtName.TextSize = 12
 
-	txtAlternateName := canvas.NewText(s.SelectedManga.AlternateName, theme.TextColor())
-	txtAlternateName.TextSize = 14
+	txtAlternateName := canvas.NewText(s.SelectedManga.AlternateName, theme.ForegroundColor())
+	txtAlternateName.TextSize = 12
 
-	txtStatus := canvas.NewText(s.SelectedManga.Status, theme.TextColor())
-	txtStatus.TextSize = 14
+	txtStatus := canvas.NewText(s.SelectedManga.Status, theme.ForegroundColor())
+	txtStatus.TextSize = 12
 
-	txtNbOfChapters := canvas.NewText(fmt.Sprintf("%d", len(s.SelectedManga.Chapters)), theme.TextColor())
-	txtNbOfChapters.TextSize = 14
+	txtNbOfChapters := canvas.NewText(fmt.Sprintf("%d", len(s.SelectedManga.Chapters)), theme.ForegroundColor())
+	txtNbOfChapters.TextSize = 12
 
-	txtAuthor := canvas.NewText(s.SelectedManga.Author, theme.TextColor())
-	txtAuthor.TextSize = 14
+	txtAuthor := canvas.NewText(s.SelectedManga.Author, theme.ForegroundColor())
+	txtAuthor.TextSize = 12
 
 	updated := checkNewChapters(s.SelectedManga)
 	txtAvailability := canvas.NewText("complete", color.NRGBA{R: 0x80, G: 0x80, B: 0xff, A: 0xff})
 	if updated {
 		txtAvailability = canvas.NewText("new chapters available", color.NRGBA{R: 0xff, G: 0x80, B: 0x80, A: 0xff})
 	}
-	txtAvailability.TextSize = 14
+	txtAvailability.TextSize = 12
 
 	txtDescription := widget.NewLabel(s.SelectedManga.Description)
 	txtDescription.Wrapping = fyne.TextWrapWord
@@ -156,7 +156,7 @@ func (s *SeriesRenderer) Destroy() {
 	s.series = nil
 }
 
-func (s *SeriesRenderer) Layout(size fyne.Size) {
+func (s *SeriesRenderer) Layout(_ fyne.Size) {
 	var txtHeight float32
 	p := theme.Padding()
 	ldx := (config.Config.ThumbnailWidth + p) * 2

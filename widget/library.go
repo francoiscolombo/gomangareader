@@ -5,6 +5,7 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
@@ -39,6 +40,22 @@ func ShowLibrary() {
 	}
 	cfg := settings.ReadSettings()
 	config = &cfg
+	if len(config.History.Titles) == 0 {
+		// by default, we add all-you-need-is-kill as the first manga (manga that is at the origin of edge of tomorrow)
+		provider := settings.MangaReader{}
+		newManga := provider.FindDetails(config.Config.LibraryPath, "all-you-need-is-kill", 0)
+		provider.BuildChaptersList(&newManga)
+		config.History.Titles = append(config.History.Titles, newManga)
+		// download cover picture (if needed)
+		err1 := downloadCover(newManga)
+		if err1 == nil {
+			// and generate thumbnails (if needed)
+			err2 := extractFirstPages(config.Config.LibraryPath, newManga)
+			if err2 != nil {
+				dialog.ShowError(err2, nil)
+			}
+		}
+	}
 
 	r, _ := fyne.LoadResourceFromPath("./gomangareader.png")
 	application = app.NewWithID("gomangareader")
@@ -48,14 +65,14 @@ func ShowLibrary() {
 	mangaTitle := widget.NewLabelWithStyle("...", fyne.TextAlignCenter, fyne.TextStyle{Monospace: true})
 	loadLibraryWindow := application.NewWindow(fmt.Sprintf("GoMangaReader v%s (%s)", versionNumber, versionName))
 	if config.Config.AutoUpdate == true {
-		loadLibraryWindow.SetContent(fyne.NewContainerWithLayout(layout.NewGridWrapLayout(fyne.NewSize(config.Config.PageWidth, config.Config.ThumbTextHeight)),
+		loadLibraryWindow.SetContent(container.New(layout.NewGridWrapLayout(fyne.NewSize(config.Config.PageWidth, config.Config.ThumbTextHeight)),
 			widget.NewLabelWithStyle("Please wait, we are now loading your library, and updating the metadata", fyne.TextAlignCenter, fyne.TextStyle{Bold: true, Italic: true}),
 			widget.NewLabelWithStyle(" at the same time... It could be long, so be patient.", fyne.TextAlignCenter, fyne.TextStyle{Bold: true, Italic: true}),
 			progress,
 			mangaTitle),
 		)
 	} else {
-		loadLibraryWindow.SetContent(fyne.NewContainerWithLayout(layout.NewGridWrapLayout(fyne.NewSize(config.Config.PageWidth, config.Config.ThumbTextHeight)),
+		loadLibraryWindow.SetContent(container.New(layout.NewGridWrapLayout(fyne.NewSize(config.Config.PageWidth, config.Config.ThumbTextHeight)),
 			widget.NewLabelWithStyle("Please wait, we are now loading your library...", fyne.TextAlignCenter, fyne.TextStyle{Bold: true, Italic: true}),
 			progress,
 			mangaTitle),
@@ -78,7 +95,7 @@ func ShowLibrary() {
 		search = NewSearch("mangareader.cc")
 		searchTab = container.NewScroll(search)
 
-		details = fyne.NewContainerWithLayout(layout.NewVBoxLayout(),
+		details = container.New(layout.NewVBoxLayout(),
 			series,
 			chapters,
 			downloader,
@@ -187,13 +204,13 @@ func refreshTabsContent(manga *settings.Manga, tabIndex int) {
 		b = manga.LastChapter <= manga.Chapters[len(manga.Chapters)-1]
 	}
 	if b {
-		details = fyne.NewContainerWithLayout(layout.NewVBoxLayout(),
+		details = container.New(layout.NewVBoxLayout(),
 			series,
 			chapters,
 			downloader,
 		)
 	} else {
-		details = fyne.NewContainerWithLayout(layout.NewVBoxLayout(),
+		details = container.New(layout.NewVBoxLayout(),
 			series,
 			chapters,
 		)
@@ -216,7 +233,7 @@ func refreshTabsContent(manga *settings.Manga, tabIndex int) {
 		container.NewTabItem("Search new titles", searchTab),
 		container.NewTabItem("Preferences", configuration),
 	)
-	libraryTabs.SelectTabIndex(tabIndex)
+	libraryTabs.SelectIndex(tabIndex)
 	libraryTabs.Refresh()
 
 	mainWindow.SetContent(libraryTabs)

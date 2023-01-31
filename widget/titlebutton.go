@@ -105,7 +105,7 @@ func (t *TitleButtonRenderer) Objects() []fyne.CanvasObject {
 	return objects
 }
 
-func (t *TitleButtonRenderer) Layout(size fyne.Size) {
+func (t *TitleButtonRenderer) Layout(_ fyne.Size) {
 	//log.Printf(">>> method Layout with size %d/%d called on %s title button", size.Width, size.Height, t.title)
 	t.bg.Resize(fyne.NewSize(config.Config.ThumbnailWidth+theme.Padding()/2, config.Config.ThumbnailHeight+config.Config.ThumbTextHeight+theme.Padding()/2))
 	t.cover.SetMinSize(fyne.NewSize(config.Config.ThumbnailWidth, config.Config.ThumbnailHeight))

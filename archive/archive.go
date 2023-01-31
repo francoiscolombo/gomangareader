@@ -3,6 +3,7 @@ package archive
 import (
 	"archive/zip"
 	"fmt"
+	"fyne.io/fyne/v2/dialog"
 	"io"
 	"os"
 	"path/filepath"
@@ -18,7 +19,12 @@ func Unzip(src string, dest string) ([]string, error) {
 	if err != nil {
 		return filenames, err
 	}
-	defer r.Close()
+	defer func(r *zip.ReadCloser) {
+		err := r.Close()
+		if err != nil {
+			dialog.ShowError(err, nil)
+		}
+	}(r)
 	for _, f := range r.File {
 		fpath := filepath.Join(dest, filepath.Base(f.Name))
 		if !strings.HasPrefix(fpath, filepath.Clean(dest)+string(os.PathSeparator)) {
@@ -38,8 +44,14 @@ func Unzip(src string, dest string) ([]string, error) {
 			return filenames, err
 		}
 		_, err = io.Copy(outFile, rc)
-		outFile.Close()
-		rc.Close()
+		err = outFile.Close()
+		if err != nil {
+			return nil, err
+		}
+		err = rc.Close()
+		if err != nil {
+			return nil, err
+		}
 		if err != nil {
 			return filenames, err
 		}
@@ -56,10 +68,20 @@ func ZipFiles(filename string, files []string) error {
 	if err != nil {
 		return err
 	}
-	defer newZipFile.Close()
+	defer func(newZipFile *os.File) {
+		err := newZipFile.Close()
+		if err != nil {
+			dialog.ShowError(err, nil)
+		}
+	}(newZipFile)
 
 	zipWriter := zip.NewWriter(newZipFile)
-	defer zipWriter.Close()
+	defer func(zipWriter *zip.Writer) {
+		err := zipWriter.Close()
+		if err != nil {
+			dialog.ShowError(err, nil)
+		}
+	}(zipWriter)
 
 	// Add files to zip
 	for _, file := range files {
@@ -76,7 +98,12 @@ func addFileToZip(zipWriter *zip.Writer, filename string) error {
 	if err != nil {
 		return err
 	}
-	defer fileToZip.Close()
+	defer func(fileToZip *os.File) {
+		err := fileToZip.Close()
+		if err != nil {
+			dialog.ShowError(err, nil)
+		}
+	}(fileToZip)
 
 	// Get the file information
 	info, err := fileToZip.Stat()

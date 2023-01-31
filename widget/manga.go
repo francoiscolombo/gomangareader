@@ -66,7 +66,7 @@ func (r *Reader) CreateRenderer() fyne.WidgetRenderer {
 
 	bg := canvas.NewRectangle(theme.ButtonColor())
 
-	displayPage := canvas.NewText(fmt.Sprintf("Page %d / %d", r.PageNumber, r.NbPages), theme.TextColor())
+	displayPage := canvas.NewText(fmt.Sprintf("Page %d / %d", r.PageNumber, r.NbPages), theme.ForegroundColor())
 	displayPage.TextStyle = fyne.TextStyle{Monospace: true}
 	displayPage.TextSize = 10
 
@@ -143,7 +143,7 @@ func (r *ReaderRenderer) Destroy() {
 	r.reader = nil
 }
 
-func (r *ReaderRenderer) Layout(size fyne.Size) {
+func (r *ReaderRenderer) Layout(_ fyne.Size) {
 	p := theme.Padding()
 
 	dx := p

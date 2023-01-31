@@ -107,7 +107,7 @@ func (s *SearchRenderer) MinSize() fyne.Size {
 	return fyne.NewSize(config.Config.ThumbnailWidth*config.Config.NbColumns, height)
 }
 
-func (s *SearchRenderer) Layout(size fyne.Size) {
+func (s *SearchRenderer) Layout(_ fyne.Size) {
 	p := theme.Padding()
 	dx := p
 	dy := p

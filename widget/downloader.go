@@ -53,7 +53,7 @@ func (d *Downloader) CreateRenderer() fyne.WidgetRenderer {
 		page.FillMode = canvas.ImageFillContain
 	}
 
-	label := canvas.NewText("Please wait, downloading pages now...", theme.TextColor())
+	label := canvas.NewText("Please wait, downloading pages now...", theme.ForegroundColor())
 	label.TextSize = 12
 	label.Alignment = fyne.TextAlignCenter
 
@@ -229,7 +229,7 @@ func (d *DownloaderRenderer) Objects() []fyne.CanvasObject {
 	return objects
 }
 
-func (d *DownloaderRenderer) Layout(size fyne.Size) {
+func (d *DownloaderRenderer) Layout(_ fyne.Size) {
 	var txtHeight float32
 	p := theme.Padding()
 	dx := p

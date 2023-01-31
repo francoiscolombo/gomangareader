@@ -120,7 +120,7 @@ func (si *SearchItem) CreateRenderer() fyne.WidgetRenderer {
 		StrokeWidth: 1,
 	}
 
-	title := canvas.NewText(si.MangaFound.Name, theme.TextColor())
+	title := canvas.NewText(si.MangaFound.Name, theme.ForegroundColor())
 	title.TextStyle = fyne.TextStyle{Italic: true}
 
 	description := widget.NewLabel("")
@@ -175,7 +175,7 @@ func (s *SearchItemRender) MinSize() fyne.Size {
 	return fyne.NewSize(config.Config.ThumbnailWidth*config.Config.NbColumns, config.Config.ThumbMiniHeight+theme.Padding()*2)
 }
 
-func (s *SearchItemRender) Layout(size fyne.Size) {
+func (s *SearchItemRender) Layout(_ fyne.Size) {
 	p := theme.Padding()
 
 	s.lineUp.Resize(fyne.NewSize(config.Config.ThumbnailWidth*config.Config.NbColumns, 1))

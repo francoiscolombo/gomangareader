@@ -11,6 +11,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 )
 
@@ -88,6 +89,11 @@ DownloadCover simply download a cover for a manga title
 func downloadCover(manga settings.Manga) error {
 	// download only if does not exists
 	if _, err := os.Stat(manga.CoverPath); os.IsNotExist(err) {
+		// first ensure that the path exists...
+		err := os.MkdirAll(path.Dir(manga.CoverPath), 0750)
+		if err != nil {
+			return err
+		}
 		//fmt.Printf("- %s does not exists yet, we have to download it....", manga.CoverPath)
 		req, _ := http.NewRequest("GET", manga.CoverUrl, nil)
 		req.Header.Add("cache-control", "no-cache")

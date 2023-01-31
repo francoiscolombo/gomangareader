@@ -55,8 +55,8 @@ func (c *Chapters) CreateRenderer() fyne.WidgetRenderer {
 	thumbnail := &canvas.Image{FillMode: canvas.ImageFillOriginal}
 	thumbnail.File = filepath.FromSlash(fmt.Sprintf("%s/%s-%s.jpg", c.ThumbnailPath, c.Title, c.Chapters[c.CurrentChapterIndex]))
 
-	chapter := canvas.NewText(fmt.Sprintf("%s - Chapter %s", c.Title, c.Chapters[c.CurrentChapterIndex]), theme.TextColor())
-	chapter.TextSize = 14
+	chapter := canvas.NewText(fmt.Sprintf("%s - Chapter %s", c.Title, c.Chapters[c.CurrentChapterIndex]), theme.ForegroundColor())
+	chapter.TextSize = 12
 
 	previous := widget.NewButtonWithIcon("", theme.NavigateBackIcon(), func() {
 		currentChapterIndex := c.CurrentChapterIndex - 1
@@ -126,7 +126,7 @@ func (c *ChaptersRenderer) MinSize() fyne.Size {
 	return fyne.NewSize(config.Config.ThumbMiniWidth+config.Config.LeftRightButtonWidth*2+config.Config.ChapterLabelWidth+theme.Padding()*7+200, config.Config.ThumbMiniHeight+theme.Padding()*2)
 }
 
-func (c *ChaptersRenderer) Layout(size fyne.Size) {
+func (c *ChaptersRenderer) Layout(_ fyne.Size) {
 	p := theme.Padding()
 	dx := p
 	dy := p
@@ -169,8 +169,8 @@ func (c *ChaptersRenderer) Refresh() {
 	c.thumbnail.File = filepath.FromSlash(fmt.Sprintf("%s/%s-%s.jpg", c.chapters.ThumbnailPath, c.chapters.Title, c.chapters.Chapters[c.chapters.CurrentChapterIndex]))
 	c.thumbnail.Refresh()
 
-	c.chapter = canvas.NewText(fmt.Sprintf("%s - Chapter %s", c.chapters.Title, c.chapters.Chapters[c.chapters.CurrentChapterIndex]), theme.TextColor())
-	c.chapter.TextSize = 14
+	c.chapter = canvas.NewText(fmt.Sprintf("%s - Chapter %s", c.chapters.Title, c.chapters.Chapters[c.chapters.CurrentChapterIndex]), theme.ForegroundColor())
+	c.chapter.TextSize = 12
 	c.chapter.Refresh()
 
 }
